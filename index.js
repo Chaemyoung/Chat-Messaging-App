@@ -56,31 +56,56 @@ app.get('/', (req, res) => {
 });
 
 
-
 app.get('/signup', (req, res) => {
     const errorMessage = req.query.error || '';
     res.render('signup', { errorMessage });
 });
 
-app.post('/submitUser', async (req,res) => {
+app.post('/submitUser', async (req, res) => {
     var username = req.body.username;
     var password = req.body.password;
+    var email = req.body.email;
 
+    // Validation
     if (!username) {
         return res.redirect('/signup?error=Please provide a username');
     }
     if (!password) {
         return res.redirect('/signup?error=Please provide a password');
     }
+    if (!email) {
+        return res.redirect('/signup?error=Please provide an email');
+    }
+    if (!email.includes('@') || !email.includes('.')) {
+        return res.redirect('/signup?error=Please provide a valid email');
+    }
 
     var hashedPassword = bcrypt.hashSync(password, saltRounds);
 
     try {
-        var success = await db_users.createUser({ user: username, hashedPassword: hashedPassword });
+        // Check if username already exists
+        const existingUsername = await db_users.getUser({ user: username });
+        if (existingUsername && existingUsername.length > 0) {
+            return res.redirect('/signup?error=Username already in use');
+        }
+
+        // Check if email already exists
+        const existingEmail = await db_users.getUserByEmail({ email: email });
+        if (existingEmail && existingEmail.length > 0) {
+            return res.redirect('/signup?error=Email already in use');
+        }
+
+        // Create new user if no conflicts
+        var success = await db_users.createUser({ 
+            user: username, 
+            hashedPassword: hashedPassword,
+            email: email 
+        });
 
         if (success) {
             req.session.authenticated = true;
             req.session.username = username;
+            req.session.email = email;
             
             req.session.save((err) => {
                 if (err) {
@@ -125,36 +150,35 @@ app.post('/loggingin', async (req, res) => {
     var password = req.body.password;
 
     if (!username) {
-        return res.redirect('/login?error=Please provide a username');
+        return res.redirect('/login?error=Please provide a username or email');
     }
     if (!password) {
         return res.redirect('/login?error=Please provide a password');
     }
 
+    // Try to find user by username OR email
     var results = await db_users.getUser({ user: username });
-
-    if (results) {
-        if (results.length == 1) {
-            if (bcrypt.compareSync(password, results[0].password)) {
-                req.session.authenticated = true;
-                req.session.user_type = results[0].type;
-                req.session.username = user.username;
-                req.session.cookie.maxAge = expireTime;
-
-                return res.redirect('/');
-            }
-            else {
-                console.log('Invalid username or password');
-                return res.redirect('/login?error=Invalid username or password');
-            }
-        } else {
-            console.log('invalid number of users matched: ' + results.length + " (expected 1).");
-            return res.redirect('/login?error=Invalid username or password');
-        }
+    if (!results || results.length === 0) {
+        results = await db_users.getUserByEmail({ email: username });
     }
 
-    console.log('User not found');
-    return res.redirect('/login?error=Invalid username or password');
+    if (results && results.length === 1) {
+        if (bcrypt.compareSync(password, results[0].password)) {
+            req.session.authenticated = true;
+            req.session.user_type = results[0].type;
+            req.session.username = results[0].username;
+            req.session.email = results[0].email;
+            req.session.cookie.maxAge = expireTime;
+
+            return res.redirect('/');
+        } else {
+            console.log('Invalid credentials');
+            return res.redirect('/login?error=Invalid username/email or password');
+        }
+    } else {
+        console.log('User not found or multiple users matched');
+        return res.redirect('/login?error=Invalid username/email or password');
+    }
 });
 
 
