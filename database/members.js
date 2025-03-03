@@ -2,13 +2,14 @@ const database = include('databaseConnection');
 
 async function createUser(postData) {
 	let createUserSQL = `
-		INSERT INTO user
-		(username, password, user_type_id)
-		VALUES
-		(:user, :passwordHash, 2);
-	`;
+	INSERT INTO user
+	(email, username, password, profile_img)
+	VALUES
+	(:email, :user, :passwordHash, null);
+`;
 
 	let params = {
+		email: postData.email,
 		user: postData.user,
 		passwordHash: postData.hashedPassword
 	}
@@ -29,7 +30,7 @@ async function createUser(postData) {
 
 async function getUsers(postData) {
 	let getUsersSQL = `
-		SELECT username, password
+		SELECT email, username, password
 		FROM user;
 	`;
 	
@@ -49,9 +50,8 @@ async function getUsers(postData) {
 
 async function getUser(postData) {
 	let getUserSQL = `
-		SELECT user_id, username, password, type
+		SELECT *
 		FROM user
-		JOIN user_type USING (user_type_id)
 		WHERE username = :user;
 	`;
 
@@ -73,6 +73,30 @@ async function getUser(postData) {
 	}
 }
 
+async function getUserByEmail(postData) {
+    let getUserEmailSQL = `
+        SELECT *
+        FROM user
+        WHERE email = :email;
+    `;
+
+    let params = {
+        email: postData.email
+    }
+    
+    try {
+        const results = await database.query(getUserEmailSQL, params);
+        console.log("Successfully found user by email");
+        console.log(results[0]);
+        return results[0];
+    }
+    catch(err) {
+        console.log("Error trying to find user by email");
+        console.log(err);
+        return false;
+    }
+}
 
 
-module.exports = {createUser, getUsers, getUser};
+
+module.exports = {createUser, getUsers, getUser, getUserByEmail};
