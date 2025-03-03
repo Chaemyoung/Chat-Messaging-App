@@ -1,0 +1,13 @@
+<%=  %> 
+    <h1>Home Page: Safe website</h1>
+
+    <% if (username) { %>
+        <p>Hello, <%= username %>.</p>
+        <a href="/members"><button>Go to Members Area</button></a> 
+        <a href="/logout"><button>Logout</button></a>
+    <% } else { %>
+        <a href="/signup"><button>Sign Up</button></a> 
+        <a href="/login"><button>Log In</button></a> 
+    <% } %>
+
+<%=  %> 
