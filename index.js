@@ -56,6 +56,32 @@ app.get('/', (req, res) => {
 });
 
 
+function validatePassword(password) {
+    const minLength = 10;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(password);
+
+    if (password.length < minLength) {
+        return "Password must be at least 10 characters long";
+    }
+    if (!hasUpperCase) {
+        return "Password must contain at least one uppercase letter";
+    }
+    if (!hasLowerCase) {
+        return "Password must contain at least one lowercase letter";
+    }
+    if (!hasNumbers) {
+        return "Password must contain at least one number";
+    }
+    if (!hasSpecialChar) {
+        return "Password must contain at least one special character";
+    }
+    return null; // Returns null if password meets all requirements
+}
+
+
 app.get('/signup', (req, res) => {
     const errorMessage = req.query.error || '';
     res.render('signup', { errorMessage });
@@ -72,6 +98,11 @@ app.post('/submitUser', async (req, res) => {
     }
     if (!password) {
         return res.redirect('/signup?error=Please provide a password');
+    }
+    // Check password requirements
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+        return res.redirect(`/signup?error=${encodeURIComponent(passwordError)}`);
     }
     if (!email) {
         return res.redirect('/signup?error=Please provide an email');
