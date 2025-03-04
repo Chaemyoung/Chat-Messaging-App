@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Groups - <%= username %>'s Chat Rooms</title>
+    <!-- <link rel="stylesheet" href="/styles.css"> -->
+</head>
+<body>
+    <header>
+        <h1>Welcome, <%= username %>!</h1>
+        <nav>
+            <a href="/members">Members Area</a> | 
+            <a href="/logout">Logout</a>
+        </nav>
+    </header>
+
+    <main>
+        <h2>Your Groups</h2>
+        <% if (error) { %>
+            <p style="color: red;"><%= error %></p>
+        <% } %>
+        <% if (rooms && rooms.length > 0) { %>
+            <ul>
+                <% rooms.forEach(room => { %>
+                    <li>
+                        <a href="/room/<%= room.room_id %>"><%= room.name %></a>
+                        <p>Started: <%= new Date(room.start_datetime).toLocaleString() %></p>
+                    </li>
+                <% }); %>
+            </ul>
+        <% } else { %>
+            <p>No groups joined yet.</p>
+        <% } %>
+    </main>
+
+    <footer>
+        <p>© 2023 Chat Application</p>
+    </footer>
+</body>
+</html>
