@@ -127,15 +127,16 @@ app.post('/submitUser', async (req, res) => {
         }
 
         // Create new user if no conflicts
-        var success = await db_users.createUser({ 
+        var userId = await db_users.createUser({ 
             user: username, 
             hashedPassword: hashedPassword,
             email: email 
         });
 
-        if (success) {
+        if (userId) {
             req.session.authenticated = true;
             req.session.username = username;
+            req.session.user_id = userId;
             req.session.email = email;
             
             req.session.save((err) => {
@@ -199,8 +200,8 @@ app.post('/loggingin', async (req, res) => {
             req.session.user_type = results[0].type;
             req.session.username = results[0].username;
             req.session.email = results[0].email;
+            req.session.user_id = results[0].user_id;
             req.session.cookie.maxAge = expireTime;
-
             return res.redirect('/');
         } else {
             console.log('Invalid credentials');
