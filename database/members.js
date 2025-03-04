@@ -98,5 +98,29 @@ async function getUserByEmail(postData) {
 }
 
 
+async function getRoomsForUser(userId) {
+    let getRoomsSQL = `
+        SELECT r.room_id, r.name, r.start_datetime
+        FROM room r
+        JOIN room_user ru ON r.room_id = ru.room_id
+        WHERE ru.user_id = :userId
+        ORDER BY r.start_datetime DESC;
+    `;
 
-module.exports = {createUser, getUsers, getUser, getUserByEmail};
+    let params = {
+        userId: userId
+    };
+    
+    try {
+        const results = await database.query(getRoomsSQL, params);
+        console.log("Successfully retrieved rooms for user");
+        console.log(results[0]);
+        return results[0]; // Array of rooms
+    } catch (err) {
+        console.log("Error retrieving rooms for user");
+        console.log(err);
+        return false;
+    }
+}
+
+module.exports = { createUser, getUsers, getUser, getUserByEmail, getRoomsForUser };
