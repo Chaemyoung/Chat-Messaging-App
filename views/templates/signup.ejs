@@ -1,20 +1,35 @@
-<%- %> 
-    Sign Up
-    <form action='/submitUser' method='post'>
-        <input name='username' type='text' placeholder='username'>
-        <input name='email' type='email' placeholder='email'>
-        <input name='password' type='password' placeholder='password'>
-        <button>Submit</button>
-        <% if (errorMessage) { %>
-            <p class="error"><%= errorMessage %></p>
-        <% } %>
-        <p>Password requirements:</p>
-        <ul>
+<head>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<div class="container">
+    <div class="form-container">
+        <h2>Sign Up</h2>
+        <form action='/submitUser' method='post'>
+            <div class="form-group">
+                <input name='username' type='text' placeholder='Username' required>
+            </div>
+            <div class="form-group">
+                <input name='email' type='email' placeholder='Email' required>
+            </div>
+            <div class="form-group">
+                <input name='password' type='password' placeholder='Password' required>
+            </div>
+            <button type="submit">Sign Up</button>
+        </form>
+        <div class="or-divider">
+            <span>OR</span>
+        </div>
+        <p>Already have an account? <a href="/login"><span class="login-text">Log In</span></a></p>
+    </div>
+    <div class="error-message">
+        <% if (errorMessage) { %><p class="error"><%= errorMessage %></p><% } %>
+        <p class="password-requirements">Password requirements:</p>
+        <ul class="password-requirements-list">
             <li>Minimum 10 characters</li>
             <li>At least one uppercase letter</li>
             <li>At least one lowercase letter</li>
             <li>At least one number</li>
             <li>At least one special character (!@#$%^&* etc.)</li>
         </ul>
-    </form>
-<%- %> 
+    </div>
+</div>
