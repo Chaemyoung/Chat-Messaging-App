@@ -19,7 +19,7 @@ async function createUser(postData) {
 
         console.log("Successfully created user");
 		console.log(results[0]);
-		return true;
+		return results[0].insertId;
 	}
 	catch(err) {
 		console.log("Error inserting user");
