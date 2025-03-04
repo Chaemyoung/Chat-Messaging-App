@@ -144,7 +144,7 @@ app.post('/submitUser', async (req, res) => {
                     console.error('Session save error:', err);
                     return res.redirect('/signup?error=Session error occurred');
                 }
-                return res.redirect('/members');
+                return res.redirect('/groups');
             });
         } else {
             return res.redirect('/signup?error=Sign Up failed');
@@ -202,7 +202,7 @@ app.post('/loggingin', async (req, res) => {
             req.session.email = results[0].email;
             req.session.user_id = results[0].user_id;
             req.session.cookie.maxAge = expireTime;
-            return res.redirect('/');
+            return res.redirect('/groups');
         } else {
             console.log('Invalid credentials');
             return res.redirect('/login?error=Invalid username/email or password');
@@ -230,6 +230,33 @@ function sessionValidation(req, res, next) {
         next();
     }
 }
+
+app.get('/groups', sessionValidation, async (req, res) => {
+    const userId = req.session.user_id;
+    try {
+        const rooms = await db_users.getRoomsForUser(userId);
+        if (rooms) {
+            res.render('groups', { 
+                username: req.session.username, 
+                rooms: rooms, 
+                error: null 
+            });
+        } else {
+            res.render('groups', { 
+                username: req.session.username, 
+                rooms: [], 
+                error: 'Unable to fetch groups' 
+            });
+        }
+    } catch (err) {
+        console.error('Error fetching groups:', err);
+        res.render('groups', { 
+            username: req.session.username, 
+            rooms: [], 
+            error: 'An error occurred while fetching your groups' 
+        });
+    }
+});
 
 app.use('/members', sessionValidation);
 
