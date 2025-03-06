@@ -235,26 +235,33 @@ app.get('/groups', sessionValidation, async (req, res) => {
     const userId = req.session.user_id;
     try {
         const rooms = await db_users.getRoomsForUser(userId);
-        if (rooms) {
-            res.render('groups', { 
-                username: req.session.username, 
-                rooms: rooms, 
-                error: null 
-            });
-        } else {
-            res.render('groups', { 
-                username: req.session.username, 
-                rooms: [], 
-                error: 'Unable to fetch groups' 
-            });
-        }
-    } catch (err) {
-        console.error('Error fetching groups:', err);
+        res.render('groups', { 
+            username: req.session.username, 
+            rooms: rooms, 
+            error: null,
+            userId: userId
+        });
+    } catch (error) {
+        console.error('Error fetching groups:', error);
         res.render('groups', { 
             username: req.session.username, 
             rooms: [], 
-            error: 'An error occurred while fetching your groups' 
+            error: 'An error occurred while fetching your groups',
+            userId: userId
         });
+    }
+});
+
+app.get('/api/messages/:room_id', sessionValidation, async (req, res) => {
+    const roomId = req.params.room_id;
+    const userId = req.session.user_id;
+
+    try {
+        const messages = await db_users.getMessagesForRoom(roomId);
+        res.json({ messages });
+    } catch (error) {
+        console.error("Error fetching messages:", error);
+        res.status(500).json({ error: "Failed to fetch messages" });
     }
 });
 
