@@ -18,6 +18,7 @@ app.set('views', './views/templates');
 app.use(express.static(__dirname + "/public"));
 
 const db_users = include('database/members');
+const db_messages = include('database/messages');
 
 const mongodb_user = process.env.MONGODB_USER;
 const mongodb_password = process.env.MONGODB_PASSWORD;
@@ -257,7 +258,7 @@ app.get('/api/messages/:room_id', sessionValidation, async (req, res) => {
     const userId = req.session.user_id;
 
     try {
-        const messages = await db_users.getMessagesForRoom(roomId);
+        const messages = await db_messages.getMessagesForRoom(roomId);
         res.json({ messages });
     } catch (error) {
         console.error("Error fetching messages:", error);
