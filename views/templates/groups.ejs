@@ -4,60 +4,108 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Groups - <%= username %>'s Chat Rooms</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/groups_styles.css">
 </head>
 <body>
-    <div class="container">
-        <!-- Header Section -->
-        <header class="header">
-            <h1>Groups</h1>
-        </header>
+    <div class="content-box">
+        <div class="container">
+            <!-- Header Section -->
+            <header class="header">
+                <!-- <h1>Groups</h1> -->
+            </header>
 
-        <!-- Main Content Area -->
-        <div class="main-content">
-            <!-- Left Sidebar: Group List -->
-            <div class="groups-list">
-                <h2>Your Groups</h2>
-                <% if (error) { %>
-                    <p class="error"><%= error %></p>
-                <% } %>
-                <% if (rooms && rooms.length > 0) { %>
-                    <ul id="group-list">
-                        <% rooms.forEach(room => { %>
-                            <li class="group-item" data-room-id="<%= room.room_id %>">
-                                <div class="group-image">
-                                    <img src="/profile_placeholder.png" alt="Group Placeholder">
-                                </div>
-                                <div class="group-info">
-                                    <p class="group-name"><%= room.name %></p>
-                                </div>
-                            </li>
-                        <% }); %>
-                    </ul>
-                <% } else { %>
-                    <p class="no-groups">No groups joined yet.</p>
-                <% } %>
-            </div>
+            <!-- Main Content Area -->
+            <div class="main-content">
+                <!-- Left Sidebar: Group List -->
+                <div class="groups-list">
+                    <h2>Your Groups</h2>
+                    <% if (error) { %>
+                        <p class="error"><%= error %></p>
+                    <% } %>
+                    <% if (rooms && rooms.length > 0) { %>
+                        <ul id="group-list">
+                            <% rooms.forEach(room => { %>
+                                <li class="group-item" data-room-id="<%= room.room_id %>">
+                                    <div class="group-image">
+                                        <img src="/profile_placeholder.png" alt="Group Placeholder">
+                                    </div>
+                                    <div class="group-info">
+                                        <p class="group-name"><%= room.name %></p>
+                                    </div>
+                                </li>
+                            <% }); %>
+                        </ul>
+                    <% } else { %>
+                        <p class="no-groups">No groups joined yet.</p>
+                    <% } %>
+                </div>
 
-            <!-- Right Main Area: Group Name Placeholder -->
-            <div class="chat-panel" id="chat-panel">
-                <p class="placeholder-text">Select a group to view</p>
+                <!-- Right Main Area: Message Display -->
+                <div class="chat-panel" id="chat-panel">
+                    <div class="message-list" id="message-list">
+                        <!-- Messages will be dynamically inserted here -->
+                    </div>
+                    <div class="message-input">
+                        <div class="input-wrapper">
+                            <input type="text" placeholder="Type a message...">
+                            <button>Send</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- JavaScript for Group Selection -->
+    <!-- JavaScript for Group Selection and Message Fetching -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const groupItems = document.querySelectorAll('.group-item');
-            const chatPanel = document.getElementById('chat-panel');
+            const messageList = document.getElementById('message-list');
+            const currentUserId = '<%= userId %>';
+
+            // Helper function to format dates as yyyy-mm-dd
+            function formatDateToYYYYMMDD(date) {
+                const d = new Date(date);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
 
             groupItems.forEach(item => {
-                item.addEventListener('click', () => {
-                    // Get the group name from the clicked item
-                    const groupName = item.querySelector('.group-name').textContent;
-                    // Update the right panel with the group name
-                    chatPanel.innerHTML = `<h2>${groupName}</h2>`;
+                item.addEventListener('click', async () => {
+                    const roomId = item.getAttribute('data-room-id');
+                    try {
+                        const response = await fetch(`/api/messages/${roomId}`);
+                        const data = await response.json();
+                        const messages = data.messages;
+
+                        // Clear previous messages
+                        messageList.innerHTML = '';
+
+                        // Render messages
+                        messages.reverse().forEach(msg => {
+                            const isCurrentUser = msg.user_id === currentUserId;
+                            const messageClass = isCurrentUser ? 'message sent' : 'message received';
+                            const messageHtml = `
+                                <div class="${messageClass}">
+                                    ${!isCurrentUser ? `<img src="${msg.profile_img || 'https://via.placeholder.com/40'}" alt="${msg.username}" class="profile-pic">` : ''}
+                                    <div class="message-content">
+                                        <div class="message-text">${msg.text}</div>
+                                        <div class="message-time">${formatDateToYYYYMMDD(msg.sent_datetime)}</div>
+                                    </div>
+                                </div>
+                            `;
+                            messageList.innerHTML += messageHtml;
+                        });
+
+                        // Scroll to bottom
+                        messageList.scrollTop = messageList.scrollHeight;
+                    } catch (error) {
+                        console.error('Error fetching messages:', error);
+                        messageList.innerHTML = '<p>Error loading messages</p>';
+                    }
                 });
             });
         });
