@@ -1,0 +1,122 @@
+/* General Styling */
+body {
+    background-color: #FFFFFF;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* Container for Full Layout */
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* Header Styling */
+.header {
+    background-color: #FFFFFF;
+    padding: 10px 20px;
+    border-bottom: 1px solid #DBDBDB;
+    text-align: center;
+}
+
+.header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    color: #000000;
+    margin: 0;
+}
+
+/* Main Content Layout */
+.main-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Left Sidebar: Groups List */
+.groups-list {
+    width: 20%;
+    background-color: #FFFFFF;
+    border-right: 1px solid #DBDBDB;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.groups-list h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #000000;
+    margin: 0 0 10px;
+}
+
+#group-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.group-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    cursor: pointer;
+    height: 72px;
+    box-sizing: border-box;
+}
+
+.group-item:hover {
+    background-color: #EFEFEF;
+}
+
+.group-image img {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    margin-right: 16px;
+}
+
+.group-info .group-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #000000;
+    margin: 0;
+}
+
+/* Right Main Area: Chat Panel */
+.chat-panel {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #FFFFFF;
+}
+
+.chat-panel h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #000000;
+    margin: 0;
+}
+
+.placeholder-text {
+    font-size: 16px;
+    color: #8E8E8E;
+    margin: 0;
+}
+
+/* Edge Cases */
+.error {
+    color: red;
+    font-size: 14px;
+    text-align: center;
+    margin: 10px 0;
+}
+
+.no-groups {
+    font-size: 14px;
+    color: #8E8E8E;
+    text-align: center;
+    margin: 10px 0;
+}
