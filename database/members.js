@@ -100,27 +100,40 @@ async function getUserByEmail(postData) {
 
 async function getRoomsForUser(userId) {
     let getRoomsSQL = `
-        SELECT r.room_id, r.name, r.start_datetime
+        SELECT r.room_id, r.name, r.start_datetime, ru.last_read_msg,
+               COALESCE(
+                 (SELECT MAX(m.message_id)
+                  FROM message m
+                  JOIN room_user ru2 ON m.room_user_id = ru2.room_user_id
+                  WHERE ru2.room_id = r.room_id
+                 ), 0
+               ) AS latest_msg_id,
+               GREATEST(
+                   COALESCE(
+                       (SELECT MAX(m.message_id)
+                        FROM message m
+                        JOIN room_user ru2 ON m.room_user_id = ru2.room_user_id
+                        WHERE ru2.room_id = r.room_id
+                       ), 0
+                   ) - IFNULL(ru.last_read_msg, 0), 0
+               ) AS unread_count
         FROM room r
         JOIN room_user ru ON r.room_id = ru.room_id
         WHERE ru.user_id = :userId
         ORDER BY r.start_datetime DESC;
     `;
-
-    let params = {
-        userId: userId
-    };
-    
+    let params = { userId };
     try {
         const results = await database.query(getRoomsSQL, params);
         console.log("Successfully retrieved rooms for user");
         console.log(results[0]);
-        return results[0]; // Array of rooms
+        return results[0];
     } catch (err) {
         console.log("Error retrieving rooms for user");
         console.log(err);
         return false;
     }
 }
+
 
 module.exports = { createUser, getUsers, getUser, getUserByEmail, getRoomsForUser };
