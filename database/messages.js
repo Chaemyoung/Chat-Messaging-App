@@ -31,4 +31,32 @@ async function getLastReadMsg(userId, roomId) {
     return results[0][0]?.last_read_msg || null;
 }
 
-module.exports = { getMessagesForRoom, getLastReadMsg };
+async function sendMessage({ userId, roomId, text }) {
+    const getRoomUserSQL = `
+        SELECT room_user_id
+        FROM room_user
+        WHERE user_id = :userId AND room_id = :roomId;
+    `;
+    const params = { userId, roomId };
+    try {
+        const result = await database.query(getRoomUserSQL, params);
+        if (result[0].length === 0) {
+            throw new Error('User is not a member of this room');
+        }
+        const roomUserId = result[0][0].room_user_id;
+
+        const sendMessageSQL = `
+            INSERT INTO message (room_user_id, sent_datetime, text)
+            VALUES (:roomUserId, NOW(), :text);
+        `;
+        const params2 = { roomUserId, text };
+        const res2 = await database.query(sendMessageSQL, params2);
+        console.log(`Message sent, insertId: ${res2[0].insertId}`);
+        return res2[0].insertId;
+    } catch (err) {
+        console.error('Error sending message:', err);
+        throw err;
+    }
+}
+
+module.exports = { getMessagesForRoom, getLastReadMsg, sendMessage };
