@@ -266,6 +266,25 @@ app.get('/api/messages/:room_id', sessionValidation, async (req, res) => {
     }
 });
 
+app.use(express.json());
+
+app.post('/api/messages', sessionValidation, async (req, res) => {
+    const { roomId, text } = req.body;
+    const userId = req.session.user_id;
+    if (!roomId || !text) {
+        return res.status(400).json({ error: 'Missing roomId or text' });
+    }
+    try {
+        const messageId = await db_messages.sendMessage({ userId, roomId, text });
+
+        const sent_datetime = new Date();
+        res.json({ success: true, messageId, text, sent_datetime });
+    } catch (error) {
+        console.error('Error sending message:', error);
+        res.status(500).json({ error: 'Failed to send message' });
+    }
+});
+
 app.use('/members', sessionValidation);
 
 app.get('/members', (req, res) => {
