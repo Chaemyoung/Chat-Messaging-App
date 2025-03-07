@@ -61,7 +61,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             const groupItems = document.querySelectorAll('.group-item');
             const messageList = document.getElementById('message-list');
-            const currentUserId = '<%= userId %>';
+            // Convert the rendered userId to a number for proper comparison
+            const currentUserId = parseInt('<%= userId %>', 10);
             const sendButton = document.querySelector('.input-wrapper button');
             const messageInput = document.querySelector('.input-wrapper input');
             let activeRoomId = null;
