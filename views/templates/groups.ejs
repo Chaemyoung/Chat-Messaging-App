@@ -57,13 +57,15 @@
         </div>
     </div>
 
-    <!-- JavaScript for Group Selection and Message Fetching -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const groupItems = document.querySelectorAll('.group-item');
             const messageList = document.getElementById('message-list');
             const currentUserId = '<%= userId %>';
-
+            const sendButton = document.querySelector('.input-wrapper button');
+            const messageInput = document.querySelector('.input-wrapper input');
+            let activeRoomId = null;
+    
             // Helper function to format dates as yyyy-mm-dd
             function formatDateToYYYYMMDD(date) {
                 const d = new Date(date);
@@ -72,20 +74,21 @@
                 const day = String(d.getDate()).padStart(2, '0');
                 return `${year}-${month}-${day}`;
             }
-
+    
             groupItems.forEach(item => {
                 item.addEventListener('click', async () => {
                     const roomId = item.getAttribute('data-room-id');
+                    activeRoomId = roomId;
                     try {
                         const response = await fetch(`/api/messages/${roomId}`);
                         const data = await response.json();
                         const messages = data.messages;
-
+    
                         // Clear previous messages
                         messageList.innerHTML = '';
-
+    
                         // Render messages
-                        messages.reverse().forEach(msg => {
+                        messages.forEach(msg => {
                             const isCurrentUser = msg.user_id === currentUserId;
                             const messageClass = isCurrentUser ? 'message sent' : 'message received';
                             const messageHtml = `
@@ -99,7 +102,7 @@
                             `;
                             messageList.innerHTML += messageHtml;
                         });
-
+    
                         // Scroll to bottom
                         messageList.scrollTop = messageList.scrollHeight;
                     } catch (error) {
@@ -108,7 +111,46 @@
                     }
                 });
             });
+    
+            sendButton.addEventListener('click', async () => {
+                const text = messageInput.value.trim();
+                if (!activeRoomId) {
+                    alert('Please select a group to send a message.');
+                    return;
+                }
+                if (text === '') return;
+    
+                try {
+                    const response = await fetch('/api/messages', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ roomId: activeRoomId, text })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        // Append the new message using the same styling for sent messages
+                        const messageHtml = `
+                            <div class="message sent">
+                                <div class="message-content">
+                                    <div class="message-text">${text}</div>
+                                    <div class="message-time">${formatDateToYYYYMMDD(data.sent_datetime)}</div>
+                                </div>
+                            </div>
+                        `;
+                        messageList.innerHTML += messageHtml;
+                        messageList.scrollTop = messageList.scrollHeight;
+                        messageInput.value = '';
+                    } else {
+                        console.error('Error sending message:', data.error);
+                    }
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                }
+            });
         });
     </script>
+    
 </body>
 </html>
