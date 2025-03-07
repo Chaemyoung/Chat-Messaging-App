@@ -285,6 +285,46 @@ app.post('/api/messages', sessionValidation, async (req, res) => {
     }
 });
 
+app.post('/api/clearUnread', sessionValidation, async (req, res) => {
+    const { roomId } = req.body;
+    const userId = req.session.user_id;
+    if (!roomId) {
+        return res.status(400).json({ error: 'Missing roomId' });
+    }
+    try {
+        await db_messages.clearUnread({ roomId, userId });
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error clearing unread messages:', error);
+        res.status(500).json({ error: 'Failed to clear unread messages' });
+    }
+});
+
+app.get('/api/users', sessionValidation, async (req, res) => {
+    try {
+        const users = await db_users.getAllUsers();
+        res.json({ users });
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({ error: 'Failed to fetch users' });
+    }
+});
+
+app.post('/api/createGroup', sessionValidation, async (req, res) => {
+    const { groupName, invitedUserIds } = req.body;
+    if (!groupName || !invitedUserIds || !Array.isArray(invitedUserIds)) {
+        return res.status(400).json({ error: 'Invalid data provided' });
+    }
+    try {
+        const newRoomId = await db_users.createGroup({ groupName, invitedUserIds });
+        res.json({ success: true, roomId: newRoomId });
+    } catch (error) {
+        console.error('Error creating group:', error);
+        res.status(500).json({ error: 'Failed to create group' });
+    }
+});
+
+
 app.use('/members', sessionValidation);
 
 app.get('/members', (req, res) => {
