@@ -31,7 +31,12 @@
                                         <img src="/profile_placeholder.png" alt="Group Placeholder">
                                     </div>
                                     <div class="group-info">
-                                        <p class="group-name"><%= room.name %></p>
+                                        <p class="group-name">
+                                            <%= room.name %>
+                                            <% if (room.unread_count > 0) { %>
+                                                <span class="unread-badge"><%= room.unread_count %></span>
+                                            <% } %>
+                                        </p>
                                     </div>
                                 </li>
                             <% }); %>
@@ -103,9 +108,20 @@
                             `;
                             messageList.innerHTML += messageHtml;
                         });
-    
-                        // Scroll to bottom
                         messageList.scrollTop = messageList.scrollHeight;
+
+                        // Clear unread count for this room via API call
+                        fetch('/api/clearUnread', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ roomId: activeRoomId })
+                        }).then(() => {
+                            // Remove the unread badge from the clicked group item
+                            const unreadBadge = item.querySelector('.unread-badge');
+                            if (unreadBadge) {
+                                unreadBadge.remove();
+                            }
+                        });
                     } catch (error) {
                         console.error('Error fetching messages:', error);
                         messageList.innerHTML = '<p>Error loading messages</p>';
