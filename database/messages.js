@@ -59,4 +59,26 @@ async function sendMessage({ userId, roomId, text }) {
     }
 }
 
-module.exports = { getMessagesForRoom, getLastReadMsg, sendMessage };
+async function clearUnread({ roomId, userId }) {
+    // Retrieve the latest message id in the room
+    const getLatestMsgSQL = `
+        SELECT MAX(m.message_id) as latest_msg_id
+        FROM message m
+        JOIN room_user ru ON m.room_user_id = ru.room_user_id
+        WHERE ru.room_id = :roomId
+    `;
+    const params = { roomId };
+    const result = await database.query(getLatestMsgSQL, params);
+    const latestMsgId = result[0][0].latest_msg_id || 0;
+    
+    // Update the room_user table to mark all messages as read
+    const updateSQL = `
+        UPDATE room_user
+        SET last_read_msg = :latestMsgId
+        WHERE room_id = :roomId AND user_id = :userId
+    `;
+    const updateParams = { latestMsgId, roomId, userId };
+    await database.query(updateSQL, updateParams);
+}
+
+module.exports = { getMessagesForRoom, getLastReadMsg, sendMessage, clearUnread };
