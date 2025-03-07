@@ -135,5 +135,45 @@ async function getRoomsForUser(userId) {
     }
 }
 
+async function getAllUsers() {
+    const getUsersSQL = `
+        SELECT user_id, username, email, profile_img
+        FROM user;
+    `;
+    try {
+        const results = await database.query(getUsersSQL);
+        return results[0];
+    } catch (err) {
+        console.error("Error getting users");
+        console.error(err);
+        return [];
+    }
+}
 
-module.exports = { createUser, getUsers, getUser, getUserByEmail, getRoomsForUser };
+async function createGroup({ groupName, invitedUserIds }) {
+    // Insert new group into the room table
+    const insertRoomSQL = `
+        INSERT INTO room (name, start_datetime)
+        VALUES (:groupName, NOW());
+    `;
+    const roomParams = { groupName };
+    const roomResult = await database.query(insertRoomSQL, roomParams);
+    const newRoomId = roomResult[0].insertId;
+
+    // Insert rows into room_user table for each invited user
+    const insertRoomUserSQL = `
+        INSERT INTO room_user (room_id, user_id, last_read_msg)
+        VALUES (:roomId, :userId, 0);
+    `;
+    // Use Promise.all to insert all users concurrently
+    const insertPromises = invitedUserIds.map(userId => {
+        const params = { roomId: newRoomId, userId };
+        return database.query(insertRoomUserSQL, params);
+    });
+    await Promise.all(insertPromises);
+
+    return newRoomId;
+}
+
+
+module.exports = { createUser, getUsers, getUser, getUserByEmail, getRoomsForUser, getAllUsers, createGroup };
