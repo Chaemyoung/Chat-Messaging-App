@@ -19,7 +19,10 @@
             <div class="main-content">
                 <!-- Left Sidebar: Group List -->
                 <div class="groups-list">
-                    <h2>Your Groups</h2>
+                    <div class="group-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2>Total Groups: <%= rooms ? rooms.length : 0 %></h2>
+                        <button id="create-group-btn">Create New Group</button>
+                    </div>
                     <% if (error) { %>
                         <p class="error"><%= error %></p>
                     <% } %>
@@ -45,6 +48,7 @@
                         <p class="no-groups">No groups joined yet.</p>
                     <% } %>
                 </div>
+                
 
                 <!-- Right Main Area: Message Display -->
                 <div class="chat-panel" id="chat-panel">
@@ -61,6 +65,23 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal for Creating a New Group -->
+    <div id="group-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h2>Create New Group</h2>
+            <label for="group-name-input">Group Name:</label>
+            <input type="text" id="group-name-input" placeholder="Enter group name">
+            <div id="user-list">
+                <!-- User list with checkboxes will be populated here -->
+            </div>
+            <div class="modal-actions" style="margin-top: 10px;">
+                <button id="create-group-confirm-btn">Create</button>
+                <button id="create-group-cancel-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -109,7 +130,7 @@
                             messageList.innerHTML += messageHtml;
                         });
                         messageList.scrollTop = messageList.scrollHeight;
-
+    
                         // Clear unread count for this room via API call
                         fetch('/api/clearUnread', {
                             method: 'POST',
@@ -147,7 +168,6 @@
                     });
                     const data = await response.json();
                     if (data.success) {
-                        // Append the new message using the same styling for sent messages
                         const messageHtml = `
                             <div class="message sent">
                                 <div class="message-content">
@@ -166,8 +186,93 @@
                     console.error('Error sending message:', error);
                 }
             });
+    
+            // Popup for Creating a New Group 
+            const createGroupBtn = document.getElementById('create-group-btn');
+            const groupModal = document.getElementById('group-modal');
+            const createGroupConfirmBtn = document.getElementById('create-group-confirm-btn');
+            const createGroupCancelBtn = document.getElementById('create-group-cancel-btn');
+            const userListContainer = document.getElementById('user-list');
+            const groupNameInput = document.getElementById('group-name-input');
+    
+            // Function to open the modal and fetch users
+            createGroupBtn.addEventListener('click', async () => {
+                groupModal.style.display = 'block';
+                groupNameInput.value = '';
+                userListContainer.innerHTML = 'Loading users...';
+                try {
+                    const response = await fetch('/api/users');
+                    const data = await response.json();
+                    // Filter out the current user from the list if desired
+                    const users = data.users.filter(u => Number(u.user_id) !== currentUserId);
+                    if (users.length === 0) {
+                        userListContainer.innerHTML = '<p>No other users available.</p>';
+                        return;
+                    }
+                    userListContainer.innerHTML = '<ul>';
+                    users.forEach(user => {
+                        userListContainer.innerHTML += `
+                            <li>
+                                <label>
+                                    <input type="checkbox" value="${user.user_id}">
+                                    ${user.username}
+                                </label>
+                            </li>
+                        `;
+                    });
+                    userListContainer.innerHTML += '</ul>';
+                } catch (err) {
+                    console.error('Error fetching users:', err);
+                    userListContainer.innerHTML = '<p>Error loading users.</p>';
+                }
+            });
+    
+            // Cancel button to close the modal
+            createGroupCancelBtn.addEventListener('click', () => {
+                groupModal.style.display = 'none';
+            });
+    
+            // Confirm button to create the group
+            createGroupConfirmBtn.addEventListener('click', async () => {
+                const groupName = groupNameInput.value.trim();
+                if (!groupName) {
+                    alert('Please enter a group name.');
+                    return;
+                }
+                // Gather selected user ids
+                const checkboxes = userListContainer.querySelectorAll('input[type="checkbox"]:checked');
+                const invitedUserIds = Array.from(checkboxes).map(cb => parseInt(cb.value, 10));
+                // Include current user automatically
+                invitedUserIds.push(currentUserId);
+    
+                try {
+                    const response = await fetch('/api/createGroup', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ groupName, invitedUserIds })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        alert('Group created successfully!');
+                        groupModal.style.display = 'none';
+                        // Reload to display new group right away
+                        location.reload();
+                    } else {
+                        console.error('Error creating group:', data.error);
+                    }
+                } catch (error) {
+                    console.error('Error creating group:', error);
+                }
+            });
+    
+            window.addEventListener('click', (e) => {
+                if (e.target === groupModal) {
+                    groupModal.style.display = 'none';
+                }
+            });
         });
     </script>
+    
     
 </body>
 </html>
