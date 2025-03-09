@@ -54,12 +54,15 @@
                     <div class="group-info">
                         <img src="/default_group_image.png" alt="Group Image" id="group-image">
                         <h2 id="group-name">Select a group</h2>
+                        <button id="invite-btn">Invite</button>
                     </div>
                     <div class="message-list" id="message-list">
-                        <!-- Chat messages go here -->
                     </div>
                     <div class="message-input">
-                        <!-- Message input area -->
+                        <div class="input-wrapper">
+                            <input type="text" placeholder="Type a message...">
+                            <button>Send</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -82,128 +85,179 @@
         </div>
     </div>
 
+    <!-- Invite Modal -->
+<div id="invite-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h2>Invite to Group</h2>
+        <div id="current-members">
+            <h3>Current Members</h3>
+            <ul></ul>
+        </div>
+        <div id="invite-list">
+            <h3>Invite New Members</h3>
+            <ul></ul>
+        </div>
+        <div class="modal-actions">
+            <button id="invite-confirm-btn">Invite</button>
+            <button id="invite-cancel-btn">Cancel</button>
+        </div>
+    </div>
+</div>
+
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const groupItems = document.querySelectorAll('.group-item');
-            const messageList = document.getElementById('message-list');
-            // Convert the rendered userId to a number for proper comparison
-            const currentUserId = parseInt('<%= userId %>', 10);
-            const sendButton = document.querySelector('.input-wrapper button');
-            const messageInput = document.querySelector('.input-wrapper input');
-            let activeRoomId = null;
-    
-            // Helper function to format dates as yyyy-mm-dd
-            function formatDateToYYYYMMDD(date) {
-                const d = new Date(date);
-                const year = d.getFullYear();
-                const month = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            }
-    
-            groupItems.forEach(item => {
-                item.addEventListener('click', async () => {
-                    const roomId = item.getAttribute('data-room-id');
-                    activeRoomId = roomId;
-                    try {
-                        const response = await fetch(`/api/messages/${roomId}`);
-                        const data = await response.json();
-                        const messages = data.messages;
-    
-                        // Clear previous messages
-                        messageList.innerHTML = '';
-    
-                        // Render messages
-                        messages.forEach(msg => {
-                            const isCurrentUser = msg.user_id === currentUserId;
-                            const messageClass = isCurrentUser ? 'message sent' : 'message received';
-                            const messageHtml = `
-                                <div class="${messageClass}">
-                                    ${!isCurrentUser ? `<img src="${msg.profile_img || 'https://via.placeholder.com/40'}" alt="${msg.username}" class="profile-pic">` : ''}
-                                    <div class="message-content">
-                                        <div class="message-text">${msg.text}</div>
-                                        <div class="message-time">${formatDateToYYYYMMDD(msg.sent_datetime)}</div>
-                                    </div>
-                                </div>
-                            `;
-                            messageList.innerHTML += messageHtml;
-                        });
-                        messageList.scrollTop = messageList.scrollHeight;
-    
-                        // Clear unread count for this room via API call
-                        fetch('/api/clearUnread', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ roomId: activeRoomId })
-                        }).then(() => {
-                            // Remove the unread badge from the clicked group item
-                            const unreadBadge = item.querySelector('.unread-badge');
-                            if (unreadBadge) {
-                                unreadBadge.remove();
-                            }
-                        });
-                    } catch (error) {
-                        console.error('Error fetching messages:', error);
-                        messageList.innerHTML = '<p>Error loading messages</p>';
-                    }
-                });
-            });
-    
-            sendButton.addEventListener('click', async () => {
-                const text = messageInput.value.trim();
-                if (!activeRoomId) {
-                    alert('Please select a group to send a message.');
-                    return;
-                }
-                if (text === '') return;
-    
-                try {
-                    const response = await fetch('/api/messages', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ roomId: activeRoomId, text })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        const messageHtml = `
-                            <div class="message sent">
-                                <div class="message-content">
-                                    <div class="message-text">${text}</div>
-                                    <div class="message-time">${formatDateToYYYYMMDD(data.sent_datetime)}</div>
-                                </div>
+       document.addEventListener('DOMContentLoaded', () => {
+    // Variable declarations
+    const groupItems = document.querySelectorAll('.group-item');
+    const messageList = document.getElementById('message-list');
+    const currentUserId = parseInt('<%= userId %>', 10);
+    const sendButton = document.getElementById('send-btn');
+    const messageInput = document.getElementById('message-input');
+    const inviteBtn = document.getElementById('invite-btn');
+    const inviteModal = document.getElementById('invite-modal');
+    const inviteConfirmBtn = document.getElementById('invite-confirm-btn');
+    const inviteCancelBtn = document.getElementById('invite-cancel-btn');
+    const createGroupBtn = document.getElementById('create-group-btn');
+    const groupModal = document.getElementById('group-modal');
+    const createGroupConfirmBtn = document.getElementById('create-group-confirm-btn');
+    const createGroupCancelBtn = document.getElementById('create-group-cancel-btn');
+    const userListContainer = document.getElementById('user-list');
+    const groupNameInput = document.getElementById('group-name-input');
+    let activeRoomId = null;
+
+    // Helper function to format dates as yyyy-mm-dd
+    function formatDateToYYYYMMDD(date) {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    // Group selection logic (single instance)
+    groupItems.forEach(item => {
+        item.addEventListener('click', async () => {
+            activeRoomId = item.getAttribute('data-room-id');
+            const groupName = item.querySelector('.group-name').textContent.trim();
+            const groupImage = item.querySelector('.group-image img')?.src || '/default_group_image.png';
+
+            // Update group info in chat panel
+            document.getElementById('group-name').textContent = groupName;
+            document.getElementById('group-image').src = groupImage;
+
+            try {
+                const response = await fetch(`/api/messages/${activeRoomId}`);
+                if (!response.ok) throw new Error('Failed to fetch messages');
+                const data = await response.json();
+                const messages = data.messages;
+
+                // Clear previous messages
+                messageList.innerHTML = '';
+
+                // Render messages
+                messages.forEach(msg => {
+                    const isCurrentUser = msg.user_id === currentUserId;
+                    const messageClass = isCurrentUser ? 'message sent' : 'message received';
+                    const messageHtml = `
+                        <div class="${messageClass}">
+                            ${!isCurrentUser ? `<img src="${msg.profile_img || 'https://via.placeholder.com/40'}" alt="${msg.username}" class="profile-pic">` : ''}
+                            <div class="message-content">
+                                <div class="message-text">${msg.text}</div>
+                                <div class="message-time">${formatDateToYYYYMMDD(msg.sent_datetime)}</div>
                             </div>
-                        `;
-                        messageList.innerHTML += messageHtml;
-                        messageList.scrollTop = messageList.scrollHeight;
-                        messageInput.value = '';
-                    } else {
-                        console.error('Error sending message:', data.error);
-                    }
-                } catch (error) {
-                    console.error('Error sending message:', error);
+                        </div>
+                    `;
+                    messageList.innerHTML += messageHtml;
+                });
+                messageList.scrollTop = messageList.scrollHeight;
+
+                // Clear unread count
+                await fetch('/api/clearUnread', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roomId: activeRoomId })
+                });
+                const unreadBadge = item.querySelector('.unread-badge');
+                if (unreadBadge) unreadBadge.remove();
+            } catch (error) {
+                console.error('Error fetching messages:', error);
+                messageList.innerHTML = '<p>Error loading messages</p>';
+            }
+        });
+    });
+
+    // Send message functionality
+    if (sendButton) {
+        sendButton.addEventListener('click', async () => {
+            const text = messageInput.value.trim();
+            if (!activeRoomId) {
+                alert('Please select a group to send a message.');
+                return;
+            }
+            if (!text) return;
+
+            try {
+                const response = await fetch('/api/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roomId: activeRoomId, text })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const messageHtml = `
+                        <div class="message sent">
+                            <div class="message-content">
+                                <div class="message-text">${text}</div>
+                                <div class="message-time">${formatDateToYYYYMMDD(data.sent_datetime)}</div>
+                            </div>
+                        </div>
+                    `;
+                    messageList.innerHTML += messageHtml;
+                    messageList.scrollTop = messageList.scrollHeight;
+                    messageInput.value = '';
+                } else {
+                    console.error('Error sending message:', data.error);
                 }
-            });
-    
-            // Popup for Creating a New Group 
-            const createGroupBtn = document.getElementById('create-group-btn');
-            const groupModal = document.getElementById('group-modal');
-            const createGroupConfirmBtn = document.getElementById('create-group-confirm-btn');
-            const createGroupCancelBtn = document.getElementById('create-group-cancel-btn');
-            const userListContainer = document.getElementById('user-list');
-            const groupNameInput = document.getElementById('group-name-input');
-    
-            // Function to open the modal and fetch users
-            createGroupBtn.addEventListener('click', async () => {
+            } catch (error) {
+                console.error('Error sending message:', error);
+            }
+        });
+    }
+
+    // Invite button functionality
+    if (inviteBtn) {
+        inviteBtn.addEventListener('click', () => {
+            if (!activeRoomId) {
+                alert('Please select a group first');
+                return;
+            }
+            if (inviteModal) {
+                inviteModal.style.display = 'block';
+                loadInviteModal(activeRoomId);
+            } else {
+                console.error('Invite modal not found in the DOM');
+            }
+        });
+    }
+
+    // Close invite modal on cancel
+    if (inviteCancelBtn) {
+        inviteCancelBtn.addEventListener('click', () => {
+            if (inviteModal) inviteModal.style.display = 'none';
+        });
+    }
+
+    // Create group button functionality
+    if (createGroupBtn) {
+        createGroupBtn.addEventListener('click', async () => {
+            if (groupModal) {
                 groupModal.style.display = 'block';
-                groupNameInput.value = '';
-                userListContainer.innerHTML = 'Loading users...';
+                if (groupNameInput) groupNameInput.value = '';
+                if (userListContainer) userListContainer.innerHTML = 'Loading users...';
+
                 try {
                     const response = await fetch('/api/users');
                     const data = await response.json();
-                    // Filter out the current user from the list if desired
                     const users = data.users.filter(u => Number(u.user_id) !== currentUserId);
                     if (users.length === 0) {
                         userListContainer.innerHTML = '<p>No other users available.</p>';
@@ -223,72 +277,151 @@
                     userListContainer.innerHTML += '</ul>';
                 } catch (err) {
                     console.error('Error fetching users:', err);
-                    userListContainer.innerHTML = '<p>Error loading users.</p>';
+                    if (userListContainer) userListContainer.innerHTML = '<p>Error loading users.</p>';
                 }
-            });
-    
-            // Cancel button to close the modal
-            createGroupCancelBtn.addEventListener('click', () => {
-                groupModal.style.display = 'none';
-            });
-    
-            // Confirm button to create the group
-            createGroupConfirmBtn.addEventListener('click', async () => {
-                const groupName = groupNameInput.value.trim();
-                if (!groupName) {
-                    alert('Please enter a group name.');
-                    return;
-                }
-                // Gather selected user ids
-                const checkboxes = userListContainer.querySelectorAll('input[type="checkbox"]:checked');
-                const invitedUserIds = Array.from(checkboxes).map(cb => parseInt(cb.value, 10));
-                // Include current user automatically
-                invitedUserIds.push(currentUserId);
-    
-                try {
-                    const response = await fetch('/api/createGroup', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ groupName, invitedUserIds })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        alert('Group created successfully!');
-                        groupModal.style.display = 'none';
-                        // Reload to display new group right away
-                        location.reload();
-                    } else {
-                        console.error('Error creating group:', data.error);
-                    }
-                } catch (error) {
-                    console.error('Error creating group:', error);
-                }
-            });
-    
-            window.addEventListener('click', (e) => {
-                if (e.target === groupModal) {
-                    groupModal.style.display = 'none';
-                }
-            });
+            } else {
+                console.error('Group modal not found in the DOM');
+            }
         });
+    }
 
-        // Assume this is part of your group selection logic
-        const groupItems = document.querySelectorAll('.group-item'); // Your group list items
-        groupItems.forEach(item => {
-            item.addEventListener('click', async () => {
-                const roomId = item.getAttribute('data-room-id');
-                const groupName = item.querySelector('.group-name').textContent;
-                const groupImage = item.querySelector('.group-image img')?.src || '/default_group_image.png';
-
-                // Update the group info in the chat panel
-                document.getElementById('group-name').textContent = groupName;
-                document.getElementById('group-image').src = groupImage;
-
-                // Additional logic to load messages can go here
-            });
+    // Close create group modal on cancel
+    if (createGroupCancelBtn) {
+        createGroupCancelBtn.addEventListener('click', () => {
+            if (groupModal) groupModal.style.display = 'none';
         });
+    }
+
+    // Close modals when clicking outside
+    window.addEventListener('click', (e) => {
+        if (e.target === inviteModal && inviteModal) {
+            inviteModal.style.display = 'none';
+        }
+        if (e.target === groupModal && groupModal) {
+            groupModal.style.display = 'none';
+        }
+    });
+
+    // Confirm invite functionality
+    if (inviteConfirmBtn) {
+        inviteConfirmBtn.addEventListener('click', async () => {
+            const checkboxes = document.querySelectorAll('#invite-list input[type="checkbox"]:checked');
+            const invitedUserIds = Array.from(checkboxes).map(cb => parseInt(cb.value, 10));
+
+            if (invitedUserIds.length === 0) {
+                alert('Please select at least one user to invite');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/group/${activeRoomId}/invite`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ invitedUserIds })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Users have been invited successfully!');
+                    if (inviteModal) inviteModal.style.display = 'none';
+                    loadInviteModal(activeRoomId); // Refresh modal data
+                } else {
+                    alert('Failed to invite users: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error inviting users:', error);
+                alert('An error occurred while inviting users');
+            }
+        });
+    }
+
+    // Confirm create group functionality
+    if (createGroupConfirmBtn) {
+        createGroupConfirmBtn.addEventListener('click', async () => {
+            const groupName = groupNameInput?.value.trim();
+            if (!groupName) {
+                alert('Please enter a group name.');
+                return;
+            }
+            const checkboxes = userListContainer?.querySelectorAll('input[type="checkbox"]:checked');
+            const invitedUserIds = checkboxes ? Array.from(checkboxes).map(cb => parseInt(cb.value, 10)) : [];
+            invitedUserIds.push(currentUserId); // Include current user automatically
+
+            try {
+                const response = await fetch('/api/createGroup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ groupName, invitedUserIds })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('Group created successfully!');
+                    if (groupModal) groupModal.style.display = 'none';
+                    location.reload(); // Reload to display new group
+                } else {
+                    console.error('Error creating group:', data.error);
+                    alert('Failed to create group: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error creating group:', error);
+                alert('An error occurred while creating the group');
+            }
+        });
+    }
+
+    // Load invite modal data
+    async function loadInviteModal(roomId) {
+        const currentMembersList = document.querySelector('#current-members ul');
+        const inviteList = document.querySelector('#invite-list ul');
+
+        if (!currentMembersList || !inviteList) {
+            console.error('Modal elements not found');
+            return;
+        }
+
+        currentMembersList.innerHTML = '<li>Loading current members...</li>';
+        inviteList.innerHTML = '<li>Loading available users...</li>';
+
+        try {
+            const membersResponse = await fetch(`/api/group/${roomId}/members`);
+            if (!membersResponse.ok) throw new Error(`Failed to fetch members: ${membersResponse.statusText}`);
+            const membersData = await membersResponse.json();
+            const members = Array.isArray(membersData) ? membersData : (membersData.members || []);
+
+            const allUsersResponse = await fetch('/api/users');
+            if (!allUsersResponse.ok) throw new Error(`Failed to fetch users: ${allUsersResponse.statusText}`);
+            const allUsersData = await allUsersResponse.json();
+            const allUsers = Array.isArray(allUsersData) ? allUsersData : (allUsersData.users || []);
+
+            currentMembersList.innerHTML = members.length > 0
+                ? members.map(member => `<li>${member.username || 'Unknown user'}</li>`).join('')
+                : '<li>No members found</li>';
+
+            const memberIds = members.map(m => m.user_id);
+            const nonMembers = allUsers.filter(user => !memberIds.includes(user.user_id));
+            inviteList.innerHTML = nonMembers.length > 0
+                ? nonMembers.map(user => `
+                    <li>
+                        <label>
+                            <input type="checkbox" value="${user.user_id}">
+                            ${user.username || 'Unknown user'}
+                        </label>
+                    </li>
+                `).join('')
+                : '<li>No users available to invite</li>';
+        } catch (error) {
+            console.error('Error loading invite modal data:', error);
+            currentMembersList.innerHTML = '<li>Error loading members</li>';
+            inviteList.innerHTML = '<li>Error loading users</li>';
+        }
+    }
+});
+
+
+        
     </script>
     
     
 </body>
 </html>
+
