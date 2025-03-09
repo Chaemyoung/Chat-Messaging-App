@@ -324,6 +324,35 @@ app.post('/api/createGroup', sessionValidation, async (req, res) => {
     }
 });
 
+app.get('/api/group/:roomId/members', sessionValidation, async (req, res) => {
+    const roomId = req.params.roomId;
+    try {
+        const members = await db_users.getGroupMembers(roomId);
+        res.json(members);
+    } catch (error) {
+        console.error('Error fetching group members:', error);
+        res.status(500).json({ error: 'Failed to fetch group members' });
+    }
+});
+
+app.post('/api/group/:roomId/invite', sessionValidation, async (req, res) => {
+    const roomId = req.params.roomId;
+    const { invitedUserIds } = req.body;
+
+    if (!Array.isArray(invitedUserIds) || invitedUserIds.length === 0) {
+        return res.status(400).json({ error: 'No users selected to invite' });
+    }
+
+    try {
+        await db_users.inviteUsersToGroup({ roomId, invitedUserIds });
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error inviting users:', error);
+        res.status(500).json({ error: 'Failed to invite users' });
+    }
+});
+
+
 
 app.use('/members', sessionValidation);
 
