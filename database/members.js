@@ -175,5 +175,36 @@ async function createGroup({ groupName, invitedUserIds }) {
     return newRoomId;
 }
 
+async function getGroupMembers(roomId) {
+    const sql = `
+        SELECT u.user_id, u.username, u.email, u.profile_img
+        FROM user u
+        JOIN room_user ru ON u.user_id = ru.user_id
+        WHERE ru.room_id = :roomId;
+    `;
+    const params = { roomId };
+    try {
+        const results = await database.query(sql, params);
+        return results[0];
+    } catch (err) {
+        console.error("Error getting group members:", err);
+        return [];
+    }
+}
 
-module.exports = { createUser, getUsers, getUser, getUserByEmail, getRoomsForUser, getAllUsers, createGroup };
+async function inviteUsersToGroup({ roomId, invitedUserIds }) {
+    // Insert rows into room_user table for each invited user
+    const insertRoomUserSQL = `
+        INSERT INTO room_user (room_id, user_id, last_read_msg)
+        VALUES (:roomId, :userId, 0);
+    `;
+    const insertPromises = invitedUserIds.map(userId => {
+        const params = { roomId, userId };
+        return database.query(insertRoomUserSQL, params);
+    });
+    await Promise.all(insertPromises);
+
+    return roomId;
+}
+
+module.exports = { createUser, getUsers, getUser, getUserByEmail, getRoomsForUser, getAllUsers, createGroup, getGroupMembers, inviteUsersToGroup };
