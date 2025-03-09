@@ -99,39 +99,28 @@ async function getUserByEmail(postData) {
 
 
 async function getRoomsForUser(userId) {
-    let getRoomsSQL = `
-        SELECT r.room_id, r.name, r.start_datetime, ru.last_read_msg,
-               COALESCE(
-                 (SELECT MAX(m.message_id)
-                  FROM message m
-                  JOIN room_user ru2 ON m.room_user_id = ru2.room_user_id
-                  WHERE ru2.room_id = r.room_id
-                 ), 0
-               ) AS latest_msg_id,
-               GREATEST(
-                   COALESCE(
-                       (SELECT MAX(m.message_id)
-                        FROM message m
-                        JOIN room_user ru2 ON m.room_user_id = ru2.room_user_id
-                        WHERE ru2.room_id = r.room_id
-                       ), 0
-                   ) - IFNULL(ru.last_read_msg, 0), 0
-               ) AS unread_count
+    const sql = `
+        SELECT r.room_id, r.name, 
+        (
+            SELECT COUNT(m.message_id)
+            FROM message m
+            JOIN room_user ru_inner ON m.room_user_id = ru_inner.room_user_id
+            WHERE ru_inner.room_id = r.room_id
+            AND m.message_id > COALESCE(ru_current.last_read_msg, 0)
+            AND ru_inner.user_id != :userId
+        ) as unread_count
         FROM room r
-        JOIN room_user ru ON r.room_id = ru.room_id
-        WHERE ru.user_id = :userId
-        ORDER BY r.start_datetime DESC;
+        JOIN room_user ru_current ON r.room_id = ru_current.room_id
+        WHERE ru_current.user_id = :userId
+        ORDER BY r.name;
     `;
-    let params = { userId };
+    const params = { userId };
     try {
-        const results = await database.query(getRoomsSQL, params);
-        console.log("Successfully retrieved rooms for user");
-        console.log(results[0]);
+        const results = await database.query(sql, params);
         return results[0];
     } catch (err) {
-        console.log("Error retrieving rooms for user");
-        console.log(err);
-        return false;
+        console.error('Error fetching rooms for user:', err);
+        throw err;
     }
 }
 
