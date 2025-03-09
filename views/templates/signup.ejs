@@ -1,35 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <link rel="stylesheet" href="/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - ChatApp</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .wave-decoration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(90deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D, #F56040, #F77737, #FCAF45, #FFDC80);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            max-width: 450px;
+            width: 90%;
+            margin: 40px auto;
+        }
+
+        .logo {
+            font-size: 36px;
+            margin-bottom: 30px;
+            text-align: center;
+            background: linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        .form-container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 1px solid #dbdbdb;
+        }
+
+        h2 {
+            color: #262626;
+            font-size: 24px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #dbdbdb;
+            border-radius: 6px;
+            background-color: #fafafa;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+
+        input:focus {
+            border-color: #a8a8a8;
+            outline: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: opacity 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .or-divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .or-divider::before, .or-divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid #dbdbdb;
+        }
+
+        .or-divider span {
+            margin: 0 10px;
+            color: #8e8e8e;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        p {
+            color: #262626;
+            font-size: 14px;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        .login-text {
+            color: #0095f6;
+            font-weight: 600;
+        }
+
+        .login-text:hover {
+            color: #00376b;
+        }
+
+        .error-message {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid #dbdbdb;
+        }
+
+        .error {
+            color: #ed4956;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .password-requirements {
+            color: #8e8e8e;
+            text-align: left;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .password-requirements-list {
+            text-align: left;
+            padding-left: 20px;
+        }
+
+        .password-requirements-list li {
+            color: #8e8e8e;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+    </style>
 </head>
-<div class="container">
-    <div class="form-container">
-        <h2>Sign Up</h2>
-        <form action='/submitUser' method='post'>
-            <div class="form-group">
-                <input name='username' type='text' placeholder='Username' required>
+<body>
+    <div class="wave-decoration"></div>
+    
+    <div class="container">
+        <div class="logo">ChatApp</div>
+        <div class="form-container">
+            <h2>Sign Up</h2>
+            <form action='/submitUser' method='post'>
+                <div class="form-group">
+                    <input name='username' type='text' placeholder='Username' required>
+                </div>
+                <div class="form-group">
+                    <input name='email' type='email' placeholder='Email' required>
+                </div>
+                <div class="form-group">
+                    <input name='password' type='password' placeholder='Password' required>
+                </div>
+                <button type="submit">Sign Up</button>
+            </form>
+            <div class="or-divider">
+                <span>OR</span>
             </div>
-            <div class="form-group">
-                <input name='email' type='email' placeholder='Email' required>
-            </div>
-            <div class="form-group">
-                <input name='password' type='password' placeholder='Password' required>
-            </div>
-            <button type="submit">Sign Up</button>
-        </form>
-        <div class="or-divider">
-            <span>OR</span>
+            <p>Already have an account? <a href="/login"><span class="login-text">Log In</span></a></p>
         </div>
-        <p>Already have an account? <a href="/login"><span class="login-text">Log In</span></a></p>
+        <div class="error-message">
+            <% if (errorMessage) { %><p class="error"><%= errorMessage %></p><% } %>
+            <p class="password-requirements">Password requirements:</p>
+            <ul class="password-requirements-list">
+                <li>Minimum 10 characters</li>
+                <li>At least one uppercase letter</li>
+                <li>At least one lowercase letter</li>
+                <li>At least one number</li>
+                <li>At least one special character (!@#$%^&* etc.)</li>
+            </ul>
+        </div>
     </div>
-    <div class="error-message">
-        <% if (errorMessage) { %><p class="error"><%= errorMessage %></p><% } %>
-        <p class="password-requirements">Password requirements:</p>
-        <ul class="password-requirements-list">
-            <li>Minimum 10 characters</li>
-            <li>At least one uppercase letter</li>
-            <li>At least one lowercase letter</li>
-            <li>At least one number</li>
-            <li>At least one special character (!@#$%^&* etc.)</li>
-        </ul>
-    </div>
-</div>
+</body>
+</html>
