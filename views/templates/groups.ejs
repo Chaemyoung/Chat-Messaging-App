@@ -137,12 +137,12 @@
                 return `${year}-${month}-${day}`;
             }
 
-            // Group selection logic
+            // Group selection logic (images removed from group list/header)
             groupItems.forEach(item => {
                 item.addEventListener('click', async () => {
                     activeRoomId = item.getAttribute('data-room-id');
                     const groupName = item.querySelector('.group-name').textContent.trim();
-                    // Update group info in chat panel
+                    // Update group info in chat panel (only updating name)
                     document.getElementById('group-name').textContent = groupName;
 
                     try {
@@ -269,6 +269,7 @@
                                    <li>
                                        <label>
                                            <input type="checkbox" value="${user.user_id}">
+                                           <img src="${user.profile_img}" alt="${user.username} profile" style="width:30px; height:30px; border-radius:50%; vertical-align:middle; margin-right:8px;">
                                            ${user.username}
                                        </label>
                                    </li>
@@ -394,7 +395,10 @@
                     const allUsers = Array.isArray(allUsersData) ? allUsersData : (allUsersData.users || []);
 
                     currentMembersList.innerHTML = members.length > 0
-                        ? members.map(member => `<li>${member.username || 'Unknown user'}</li>`).join('')
+                        ? members.map(member => `<li>
+                               <img src="${member.profile_img}" alt="${member.username} profile" style="width:30px; height:30px; border-radius:50%; vertical-align:middle; margin-right:8px;">
+                               ${member.username || 'Unknown user'}
+                           </li>`).join('')
                         : '<li>No members found</li>';
 
                     const memberIds = members.map(m => m.user_id);
@@ -404,6 +408,7 @@
                            <li>
                                <label>
                                    <input type="checkbox" value="${user.user_id}">
+                                   <img src="${user.profile_img}" alt="${user.username} profile" style="width:30px; height:30px; border-radius:50%; vertical-align:middle; margin-right:8px;">
                                    ${user.username || 'Unknown user'}
                                </label>
                            </li>
