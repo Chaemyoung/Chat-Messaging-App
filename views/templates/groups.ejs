@@ -50,16 +50,16 @@
                 </div>
                 
 
-                <!-- Right Main Area: Message Display -->
-                <div class="chat-panel" id="chat-panel">
+                <div class="chat-panel">
+                    <div class="group-info">
+                        <img src="/default_group_image.png" alt="Group Image" id="group-image">
+                        <h2 id="group-name">Select a group</h2>
+                    </div>
                     <div class="message-list" id="message-list">
-                        <!-- Messages will be dynamically inserted here -->
+                        <!-- Chat messages go here -->
                     </div>
                     <div class="message-input">
-                        <div class="input-wrapper">
-                            <input type="text" placeholder="Type a message...">
-                            <button>Send</button>
-                        </div>
+                        <!-- Message input area -->
                     </div>
                 </div>
             </div>
@@ -269,6 +269,22 @@
                 if (e.target === groupModal) {
                     groupModal.style.display = 'none';
                 }
+            });
+        });
+
+        // Assume this is part of your group selection logic
+        const groupItems = document.querySelectorAll('.group-item'); // Your group list items
+        groupItems.forEach(item => {
+            item.addEventListener('click', async () => {
+                const roomId = item.getAttribute('data-room-id');
+                const groupName = item.querySelector('.group-name').textContent;
+                const groupImage = item.querySelector('.group-image img')?.src || '/default_group_image.png';
+
+                // Update the group info in the chat panel
+                document.getElementById('group-name').textContent = groupName;
+                document.getElementById('group-image').src = groupImage;
+
+                // Additional logic to load messages can go here
             });
         });
     </script>
