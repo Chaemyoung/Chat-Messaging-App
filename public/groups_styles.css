@@ -209,3 +209,22 @@ body {
 #create-group-btn:hover {
     background-color: #87CEEB;
 }
+
+.group-info {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #DBDBDB; /* Light gray border */
+}
+
+.group-info img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%; /* Circular image */
+    margin-right: 10px;
+}
+
+.group-info h2 {
+    font-size: 18px;
+    margin: 0;
+}
