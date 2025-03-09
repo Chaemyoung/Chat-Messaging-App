@@ -159,14 +159,14 @@
                             const isCurrentUser = msg.user_id === currentUserId;
                             const messageClass = isCurrentUser ? 'message sent' : 'message received';
                             const messageHtml = `
-                        <div class="${messageClass}">
-                            ${!isCurrentUser ? `<img src="${msg.profile_img || 'https://via.placeholder.com/40'}" alt="${msg.username}" class="profile-pic">` : ''}
-                            <div class="message-content">
-                                <div class="message-text">${msg.text}</div>
-                                <div class="message-time">${formatDateToYYYYMMDD(msg.sent_datetime)}</div>
-                            </div>
-                        </div>
-                    `;
+                               <div class="${messageClass}">
+                                   ${!isCurrentUser ? `<img src="${msg.profile_img}" alt="${msg.username}" class="profile-pic">` : ''}
+                                   <div class="message-content">
+                                       <div class="message-text">${msg.text}</div>
+                                       <div class="message-time">${formatDateToYYYYMMDD(msg.sent_datetime)}</div>
+                                   </div>
+                               </div>
+                           `;
                             messageList.innerHTML += messageHtml;
                         });
                         messageList.scrollTop = messageList.scrollHeight;
@@ -205,13 +205,13 @@
                         const data = await response.json();
                         if (data.success) {
                             const messageHtml = `
-                        <div class="message sent">
-                            <div class="message-content">
-                                <div class="message-text">${text}</div>
-                                <div class="message-time">${formatDateToYYYYMMDD(data.sent_datetime)}</div>
-                            </div>
-                        </div>
-                    `;
+                               <div class="message sent">
+                                   <div class="message-content">
+                                       <div class="message-text">${text}</div>
+                                       <div class="message-time">${formatDateToYYYYMMDD(data.sent_datetime)}</div>
+                                   </div>
+                               </div>
+                           `;
                             messageList.innerHTML += messageHtml;
                             messageList.scrollTop = messageList.scrollHeight;
                             messageInput.value = '';
@@ -266,13 +266,13 @@
                             userListContainer.innerHTML = '<ul>';
                             users.forEach(user => {
                                 userListContainer.innerHTML += `
-                            <li>
-                                <label>
-                                    <input type="checkbox" value="${user.user_id}">
-                                    ${user.username}
-                                </label>
-                            </li>
-                        `;
+                                   <li>
+                                       <label>
+                                           <input type="checkbox" value="${user.user_id}">
+                                           ${user.username}
+                                       </label>
+                                   </li>
+                               `;
                             });
                             userListContainer.innerHTML += '</ul>';
                         } catch (err) {
@@ -401,13 +401,13 @@
                     const nonMembers = allUsers.filter(user => !memberIds.includes(user.user_id));
                     inviteList.innerHTML = nonMembers.length > 0
                         ? nonMembers.map(user => `
-                    <li>
-                        <label>
-                            <input type="checkbox" value="${user.user_id}">
-                            ${user.username || 'Unknown user'}
-                        </label>
-                    </li>
-                `).join('')
+                           <li>
+                               <label>
+                                   <input type="checkbox" value="${user.user_id}">
+                                   ${user.username || 'Unknown user'}
+                               </label>
+                           </li>
+                       `).join('')
                         : '<li>No users available to invite</li>';
                 } catch (error) {
                     console.error('Error loading invite modal data:', error);
