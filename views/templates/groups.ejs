@@ -14,7 +14,6 @@
         <div class="container">
             <!-- Header Section -->
             <header class="header">
-                <!-- <h1>Groups</h1> -->
             </header>
 
             <!-- Main Content Area -->
@@ -60,8 +59,7 @@
                         <h2 id="group-name">Select a group</h2>
                         <button id="invite-btn">Invite</button>
                     </div>
-                    <div class="message-list" id="message-list">
-                    </div>
+                    <div class="message-list" id="message-list"></div>
                     <div class="message-input">
                         <div class="input-wrapper">
                             <input type="text" placeholder="Type a message...">
@@ -73,15 +71,16 @@
         </div>
     </div>
 
+    <!-- Emoji Picker -->
+    <div id="emoji-picker" class="emoji-picker"></div>
+
     <!-- Modal for Creating a New Group -->
     <div id="group-modal" class="modal" style="display:none;">
         <div class="modal-content">
             <h2>Create New Group</h2>
             <label for="group-name-input">Group Name:</label>
             <input type="text" id="group-name-input" placeholder="Enter group name">
-            <div id="user-list">
-                <!-- User list with checkboxes will be populated here -->
-            </div>
+            <div id="user-list"></div>
             <div class="modal-actions" style="margin-top: 10px;">
                 <button id="create-group-confirm-btn">Create</button>
                 <button id="create-group-cancel-btn">Cancel</button>
@@ -126,7 +125,31 @@
             const createGroupCancelBtn = document.getElementById('create-group-cancel-btn');
             const userListContainer = document.getElementById('user-list');
             const groupNameInput = document.getElementById('group-name-input');
+            const emojiPicker = document.getElementById('emoji-picker');
             let activeRoomId = null;
+            let messageReactions = {};
+            let activeReactionButtonMessageId = null;
+            let emojiList = [];
+
+            // Fetch emojis from database
+            async function fetchEmojis() {
+                try {
+                    const response = await fetch('/api/emojis');
+                    if (!response.ok) throw new Error('Failed to fetch emojis');
+                    const data = await response.json();
+                    console.log('Emoji API response:', data);
+                    return data.emojis || [];
+                } catch (error) {
+                    console.error('Error fetching emojis:', error);
+                    return [];
+                }
+            }
+
+            // Initialize application
+            async function initialize() {
+                emojiList = await fetchEmojis();
+                loadEmojiPicker();
+            }
 
             // Helper function to format dates as yyyy-mm-dd
             function formatDateToYYYYMMDD(date) {
@@ -137,12 +160,122 @@
                 return `${year}-${month}-${day}`;
             }
 
-            // Group selection logic (images removed from group list/header)
+            // Load emojis into the emoji picker
+            function loadEmojiPicker() {
+                emojiPicker.innerHTML = '';
+                if (emojiList.length === 0) {
+                    emojiPicker.innerHTML = '<p>No emojis available</p>';
+                    return;
+                }
+
+                emojiList.forEach(emoji => {
+                    const emojiImg = document.createElement('img');
+                    emojiImg.src = emoji.image;
+                    emojiImg.alt = emoji.name;
+                    emojiImg.dataset.emojiId = emoji.emoji_id;
+                    emojiImg.addEventListener('click', handleEmojiSelect);
+                    emojiPicker.appendChild(emojiImg);
+                });
+            }
+
+            // Handle emoji selection
+            function handleEmojiSelect(e) {
+                const emojiId = parseInt(e.target.dataset.emojiId);
+                const messageId = activeReactionButtonMessageId;
+
+                if (!messageId) return;
+
+                addReaction(messageId, {
+                    user_id: currentUserId,
+                    emoji_id: emojiId,
+                    emoji_image: e.target.src,
+                    emoji_name: e.target.alt
+                });
+
+                emojiPicker.style.display = 'none';
+                sendReactionToServer(messageId, emojiId);
+            }
+
+            // Add reaction to the message
+            function addReaction(messageId, reaction) {
+                if (!messageReactions[messageId]) {
+                    messageReactions[messageId] = [];
+                }
+
+                const existingReaction = messageReactions[messageId].find(r =>
+                    r.user_id === reaction.user_id && r.emoji_id === reaction.emoji_id);
+
+                if (!existingReaction) {
+                    messageReactions[messageId].push(reaction);
+                    updateReactionsDisplay(messageId);
+                }
+            }
+
+            // Update the reactions display for a message
+            function updateReactionsDisplay(messageId) {
+                const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
+                if (!messageElement) return;
+
+                let reactionsContainer = messageElement.querySelector('.message-reactions');
+                if (!reactionsContainer) {
+                    reactionsContainer = document.createElement('div');
+                    reactionsContainer.className = 'message-reactions';
+                    messageElement.querySelector('.message-content').appendChild(reactionsContainer);
+                }
+
+                reactionsContainer.innerHTML = '';
+
+                const groupedReactions = {};
+                if (messageReactions[messageId]) {
+                    messageReactions[messageId].forEach(reaction => {
+                        if (!groupedReactions[reaction.emoji_id]) {
+                            groupedReactions[reaction.emoji_id] = {
+                                count: 0,
+                                emoji_image: reaction.emoji_image,
+                                emoji_name: reaction.emoji_name
+                            };
+                        }
+                        groupedReactions[reaction.emoji_id].count++;
+                    });
+                }
+
+                Object.values(groupedReactions).forEach(reaction => {
+                    const reactionElement = document.createElement('div');
+                    reactionElement.className = 'reaction';
+                    reactionElement.innerHTML = `
+                        <img src="${reaction.emoji_image}" alt="${reaction.emoji_name}">
+                        <span>${reaction.count}</span>
+                    `;
+                    reactionsContainer.appendChild(reactionElement);
+                });
+            }
+
+            // Show emoji picker when reaction button is clicked
+            function showEmojiPicker(event, messageId) {
+                event.stopPropagation();
+
+                activeReactionButtonMessageId = messageId;
+
+                const buttonRect = event.target.getBoundingClientRect();
+                emojiPicker.style.top = `${buttonRect.bottom + window.scrollY + 5}px`;
+                emojiPicker.style.left = `${buttonRect.left + window.scrollX}px`;
+                emojiPicker.style.display = 'block';
+
+                document.addEventListener('click', closeEmojiPicker);
+            }
+
+            function closeEmojiPicker(event) {
+                if (!emojiPicker.contains(event.target) && !event.target.classList.contains('reaction-button')) {
+                    emojiPicker.style.display = 'none';
+                    document.removeEventListener('click', closeEmojiPicker);
+                }
+            }
+
+            // Group selection logic
             groupItems.forEach(item => {
                 item.addEventListener('click', async () => {
                     activeRoomId = item.getAttribute('data-room-id');
                     const groupName = item.querySelector('.group-name').textContent.trim();
-                    // Update group info in chat panel (only updating name)
                     document.getElementById('group-name').textContent = groupName;
 
                     try {
@@ -151,27 +284,36 @@
                         const data = await response.json();
                         const messages = data.messages;
 
-                        // Clear previous messages
+                        messageReactions = {};
+
                         messageList.innerHTML = '';
 
-                        // Render messages
                         messages.forEach(msg => {
                             const isCurrentUser = msg.user_id === currentUserId;
                             const messageClass = isCurrentUser ? 'message sent' : 'message received';
                             const messageHtml = `
-                               <div class="${messageClass}">
-                                   ${!isCurrentUser ? `<img src="${msg.profile_img}" alt="${msg.username}" class="profile-pic">` : ''}
-                                   <div class="message-content">
-                                       <div class="message-text">${msg.text}</div>
-                                       <div class="message-time">${formatDateToYYYYMMDD(msg.sent_datetime)}</div>
-                                   </div>
-                               </div>
-                           `;
+                                <div class="${messageClass}" data-message-id="${msg.message_id}">
+                                    ${!isCurrentUser ? `<img src="${msg.profile_img}" alt="${msg.username}" class="profile-pic">` : ''}
+                                    <div class="message-content">
+                                        <div class="message-text">${msg.text}</div>
+                                        <div class="message-time">${formatDateToYYYYMMDD(msg.sent_datetime)}</div>
+                                        <div class="message-reactions"></div>
+                                    </div>
+                                    <button class="reaction-button" data-message-id="${msg.message_id}">+</button>
+                                </div>
+                            `;
                             messageList.innerHTML += messageHtml;
                         });
+
+                        document.querySelectorAll('.reaction-button').forEach(button => {
+                            button.addEventListener('click', (e) => {
+                                const messageId = parseInt(button.dataset.messageId);
+                                showEmojiPicker(e, messageId);
+                            });
+                        });
+
                         messageList.scrollTop = messageList.scrollHeight;
 
-                        // Clear unread count
                         await fetch('/api/clearUnread', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -179,6 +321,8 @@
                         });
                         const unreadBadge = item.querySelector('.unread-badge');
                         if (unreadBadge) unreadBadge.remove();
+
+                        fetchReactionsForMessages(messages.map(m => m.message_id));
                     } catch (error) {
                         console.error('Error fetching messages:', error);
                         messageList.innerHTML = '<p>Error loading messages</p>';
@@ -204,15 +348,26 @@
                         });
                         const data = await response.json();
                         if (data.success) {
+                            const messageId = data.messageId;
                             const messageHtml = `
-                               <div class="message sent">
-                                   <div class="message-content">
-                                       <div class="message-text">${text}</div>
-                                       <div class="message-time">${formatDateToYYYYMMDD(data.sent_datetime)}</div>
-                                   </div>
-                               </div>
-                           `;
+                                <div class="message sent" data-message-id="${messageId}">
+                                    <div class="message-content">
+                                        <div class="message-text">${text}</div>
+                                        <div class="message-time">${formatDateToYYYYMMDD(data.sent_datetime)}</div>
+                                        <div class="message-reactions"></div>
+                                    </div>
+                                    <button class="reaction-button" data-message-id="${messageId}">+</button>
+                                </div>
+                            `;
                             messageList.innerHTML += messageHtml;
+
+                            const newReactionButton = messageList.querySelector(`.reaction-button[data-message-id="${messageId}"]`);
+                            if (newReactionButton) {
+                                newReactionButton.addEventListener('click', (e) => {
+                                    showEmojiPicker(e, messageId);
+                                });
+                            }
+
                             messageList.scrollTop = messageList.scrollHeight;
                             messageInput.value = '';
                         } else {
@@ -220,6 +375,12 @@
                         }
                     } catch (error) {
                         console.error('Error sending message:', error);
+                    }
+                });
+
+                messageInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        sendButton.click();
                     }
                 });
             }
@@ -266,16 +427,16 @@
                             userListContainer.innerHTML = '<ul>';
                             users.forEach(user => {
                                 userListContainer.innerHTML += `
-                                   <li>
-                                       <label>
-                                           <input type="checkbox" value="${user.user_id}">
-                                           <img src="${user.profile_img}" alt="${user.username} profile" style="width:30px; height:30px; border-radius:50%; vertical-align:middle; margin-right:8px;">
-                                           ${user.username}
-                                       </label>
-                                   </li>
-                               `;
+                                    <li>
+                                        <label>
+                                            <input type="checkbox" value="${user.user_id}">
+                                            <img src="${user.profile_img}" alt="${user.username} profile" style="width:30px; height:30px; border-radius:50%; vertical-align:middle; margin-right:8px;">
+                                            ${user.username}
+                                        </label>
+                                    </li>
+                                `;
                             });
-                            userListContainer.innerHTML += '</ul>';
+                            userListContainer.innerHTML += '</ul';
                         } catch (err) {
                             console.error('Error fetching users:', err);
                             if (userListContainer) userListContainer.innerHTML = '<p>Error loading users.</p>';
@@ -325,7 +486,7 @@
                         if (data.success) {
                             alert('Users have been invited successfully!');
                             if (inviteModal) inviteModal.style.display = 'none';
-                            loadInviteModal(activeRoomId); // Refresh modal data
+                            loadInviteModal(activeRoomId);
                         } else {
                             alert('Failed to invite users: ' + (data.error || 'Unknown error'));
                         }
@@ -346,7 +507,7 @@
                     }
                     const checkboxes = userListContainer?.querySelectorAll('input[type="checkbox"]:checked');
                     const invitedUserIds = checkboxes ? Array.from(checkboxes).map(cb => parseInt(cb.value, 10)) : [];
-                    invitedUserIds.push(currentUserId); // Include current user automatically
+                    invitedUserIds.push(currentUserId);
 
                     try {
                         const response = await fetch('/api/createGroup', {
@@ -358,7 +519,7 @@
                         if (data.success) {
                             alert('Group created successfully!');
                             if (groupModal) groupModal.style.display = 'none';
-                            location.reload(); // Reload to display new group
+                            location.reload();
                         } else {
                             console.error('Error creating group:', data.error);
                             alert('Failed to create group: ' + (data.error || 'Unknown error'));
@@ -395,24 +556,21 @@
                     const allUsers = Array.isArray(allUsersData) ? allUsersData : (allUsersData.users || []);
 
                     currentMembersList.innerHTML = members.length > 0
-                        ? members.map(member => `<li>
-                               <img src="${member.profile_img}" alt="${member.username} profile" style="width:30px; height:30px; border-radius:50%; vertical-align:middle; margin-right:8px;">
-                               ${member.username || 'Unknown user'}
-                           </li>`).join('')
+                        ? members.map(member => `<li><img src="${member.profile_img}" alt="${member.username} profile" style="width:30px; height:30px; border-radius:50%; vertical-align:middle; margin-right:8px;">${member.username || 'Unknown user'}</li>`).join('')
                         : '<li>No members found</li>';
 
                     const memberIds = members.map(m => m.user_id);
                     const nonMembers = allUsers.filter(user => !memberIds.includes(user.user_id));
                     inviteList.innerHTML = nonMembers.length > 0
                         ? nonMembers.map(user => `
-                           <li>
-                               <label>
-                                   <input type="checkbox" value="${user.user_id}">
-                                   <img src="${user.profile_img}" alt="${user.username} profile" style="width:30px; height:30px; border-radius:50%; vertical-align:middle; margin-right:8px;">
-                                   ${user.username || 'Unknown user'}
-                               </label>
-                           </li>
-                       `).join('')
+                            <li>
+                                <label>
+                                    <input type="checkbox" value="${user.user_id}">
+                                    <img src="${user.profile_img}" alt="${user.username} profile" style="width:30px; height:30px; border-radius:50%; vertical-align:middle; margin-right:8px;">
+                                    ${user.username || 'Unknown user'}
+                                </label>
+                            </li>
+                        `).join('')
                         : '<li>No users available to invite</li>';
                 } catch (error) {
                     console.error('Error loading invite modal data:', error);
@@ -420,6 +578,58 @@
                     inviteList.innerHTML = '<li>Error loading users</li>';
                 }
             }
+
+            // Fetch reactions for messages from the database
+            async function fetchReactionsForMessages(messageIds) {
+                if (!messageIds || messageIds.length === 0) return;
+
+                try {
+                    const promises = messageIds.map(messageId =>
+                        fetch(`/api/messages/${messageId}/reactions`).then(res => res.json())
+                    );
+                    const results = await Promise.all(promises);
+                    results.forEach((data, index) => {
+                        if (data.reactions) {
+                            const messageId = messageIds[index];
+                            if (!messageReactions[messageId]) messageReactions[messageId] = [];
+                            data.reactions.forEach(reaction => {
+                                messageReactions[messageId].push({
+                                    user_id: reaction.user_id,
+                                    emoji_id: reaction.emoji_id,
+                                    emoji_image: reaction.emoji_image || '/emojis/' + reaction.emoji_name + '.png',
+                                    emoji_name: reaction.emoji_name
+                                });
+                                updateReactionsDisplay(messageId);
+                            });
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error fetching reactions:', error);
+                }
+            }
+
+            // Function to send a reaction to the server
+            function sendReactionToServer(messageId, emojiId) {
+                fetch('/api/reactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message_id: messageId,
+                        emoji_id: emojiId,
+                        user_id: currentUserId
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success) {
+                            console.error('Error adding reaction:', data.error);
+                        }
+                    })
+                    .catch(error => console.error('Error sending reaction:', error));
+            }
+
+            // Initialize the application
+            initialize();
         });
     </script>
 </body>
