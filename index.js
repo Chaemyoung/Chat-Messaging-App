@@ -19,6 +19,7 @@ app.use(express.static(__dirname + "/public"));
 
 const db_users = include('database/members');
 const db_messages = include('database/messages');
+const db_emojis = include('database/emoji');
 
 const mongodb_user = process.env.MONGODB_USER;
 const mongodb_password = process.env.MONGODB_PASSWORD;
@@ -266,7 +267,6 @@ app.get('/api/messages/:room_id', sessionValidation, async (req, res) => {
     }
 });
 
-app.use(express.json());
 
 app.post('/api/messages', sessionValidation, async (req, res) => {
     const { roomId, text } = req.body;
@@ -352,6 +352,47 @@ app.post('/api/group/:roomId/invite', sessionValidation, async (req, res) => {
     }
 });
 
+app.get('/api/emojis', sessionValidation, async (req, res) => {
+    try {
+        const emojis = await db_emojis.getAllEmojis();
+        console.log('Fetched emojis:', emojis);
+        res.json({ emojis: emojis || [] });
+    } catch (error) {
+        console.error('Error fetching emojis:', error);
+        res.status(500).json({ error: 'Failed to fetch emojis' });
+    }
+});
+
+// Endpoint to add a reaction to a message
+app.post('/api/reactions', sessionValidation, async (req, res) => {
+    const { message_id, emoji_id } = req.body;
+    const user_id = req.session.user_id;
+    
+    if (!message_id || !emoji_id) {
+        return res.status(400).json({ error: 'Missing message_id or emoji_id' });
+    }
+    
+    try {
+        await db_messages.addReaction({ message_id, emoji_id, user_id });
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error adding reaction:', error);
+        res.status(500).json({ error: 'Failed to add reaction' });
+    }
+});
+
+// Endpoint to get reactions for messages
+app.get('/api/messages/:message_id/reactions', sessionValidation, async (req, res) => {
+    const message_id = req.params.message_id;
+    
+    try {
+        const reactions = await db_messages.getReactionsForMessage(message_id);
+        res.json({ reactions });
+    } catch (error) {
+        console.error('Error fetching reactions:', error);
+        res.status(500).json({ error: 'Failed to fetch reactions' });
+    }
+});
 
 
 app.use('/members', sessionValidation);
