@@ -51,6 +51,8 @@ app.use(session({
     }
 ));
 
+app.use(express.json());
+
 
 app.get('/', (req, res) => {
     const username = req.session.username || null; 
