@@ -446,7 +446,7 @@ body {
 }
 
 .emoji-picker {
-    display: flex;
+    display: None;
     flex-direction: row;
     flex-wrap: wrap;
     gap: 6px;
