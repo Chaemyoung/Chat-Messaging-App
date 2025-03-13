@@ -496,3 +496,7 @@ body {
     height: 16px;
     margin-right: 4px;
 }
+
+.emoji-picker img:hover {
+    transform: scale(1.2);
+}
