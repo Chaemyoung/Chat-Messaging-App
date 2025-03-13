@@ -446,8 +446,9 @@ body {
 }
 
 .emoji-picker {
-    display: none;
+    display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     gap: 6px;
     position: absolute;
     bottom: 34px;
@@ -457,7 +458,9 @@ body {
     border-radius: 6px;
     padding: 6px;
     z-index: 10;
-    white-space: nowrap;
+    width: 210px;
+    max-height: 50px;
+    overflow-y: auto;
 }
 
 .emoji-picker img {
