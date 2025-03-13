@@ -1,36 +1,35 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Groups - <%= username %>'s Chat Rooms</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/groups_styles.css">
-</head>
-
 <body>
+    <div class="wave-decoration"></div>
+
+    <header class="header">
+        <link rel="stylesheet" href="/groups_styles.css">
+        <div class="logo">ChatApp</div>
+        <div class="user-actions">
+            <span class="username">
+                <%= username %>
+            </span>
+            <a href="/logout">Logout</a>
+        </div>
+    </header>
+
     <div class="content-box">
         <div class="container">
-            <!-- Header Section -->
-            <header class="header">
-            </header>
-
             <!-- Main Content Area -->
             <div class="main-content">
                 <!-- Left Sidebar: Group List -->
                 <div class="groups-list">
-                    <div class="group-header"
-                        style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="group-header">
                         <h2>Total Groups: <%= rooms ? rooms.length : 0 %>
                         </h2>
                         <button id="create-group-btn">Create New Group</button>
                     </div>
+
                     <% if (error) { %>
                         <p class="error">
                             <%= error %>
                         </p>
                         <% } %>
+
                             <% if (rooms && rooms.length> 0) { %>
                                 <ul id="group-list">
                                     <% rooms.forEach(room=> { %>
@@ -59,7 +58,8 @@
                         <h2 id="group-name">Select a group</h2>
                         <button id="invite-btn">Invite</button>
                     </div>
-                    <div class="message-list" id="message-list"></div>
+                    <div class="message-list" id="message-list">
+                    </div>
                     <div class="message-input">
                         <div class="input-wrapper">
                             <input type="text" placeholder="Type a message...">
@@ -81,7 +81,7 @@
             <label for="group-name-input">Group Name:</label>
             <input type="text" id="group-name-input" placeholder="Enter group name">
             <div id="user-list"></div>
-            <div class="modal-actions" style="margin-top: 10px;">
+            <div class="modal-actions">
                 <button id="create-group-confirm-btn">Create</button>
                 <button id="create-group-cancel-btn">Cancel</button>
             </div>
@@ -291,17 +291,35 @@
                         messages.forEach(msg => {
                             const isCurrentUser = msg.user_id === currentUserId;
                             const messageClass = isCurrentUser ? 'message sent' : 'message received';
-                            const messageHtml = `
-                                <div class="${messageClass}" data-message-id="${msg.message_id}">
-                                    ${!isCurrentUser ? `<img src="${msg.profile_img}" alt="${msg.username}" class="profile-pic">` : ''}
-                                    <div class="message-content">
-                                        <div class="message-text">${msg.text}</div>
-                                        <div class="message-time">${formatDateToYYYYMMDD(msg.sent_datetime)}</div>
-                                        <div class="message-reactions"></div>
-                                    </div>
-                                    <button class="reaction-button" data-message-id="${msg.message_id}">+</button>
+                            const reactionButtonHtml = `<button class="reaction-button" data-message-id="${msg.message_id}">+</button>`;
+                            const messageContentHtml = `
+                                <div class="message-content">
+                                    <div class="message-text">${msg.text}</div>
+                                    <div class="message-time">${formatDateToYYYYMMDD(msg.sent_datetime)}</div>
+                                    <div class="message-reactions"></div>
                                 </div>
                             `;
+
+                            let messageHtml;
+                            if (isCurrentUser) {
+                                // For sent messages
+                                messageHtml = `
+                                    <div class="${messageClass}" data-message-id="${msg.message_id}">
+                                        ${reactionButtonHtml}
+                                        ${messageContentHtml}
+                                    </div>
+                                `;
+                            } else {
+                                // For received messages
+                                messageHtml = `
+                                    <div class="${messageClass}" data-message-id="${msg.message_id}">
+                                        ${!isCurrentUser ? `<img src="${msg.profile_img}" alt="${msg.username}" class="profile-pic">` : ''}
+                                        ${messageContentHtml}
+                                        ${reactionButtonHtml}
+                                        <!-- ${messageContentHtml} -->
+                                    </div>
+                                `;
+                            }
                             messageList.innerHTML += messageHtml;
                         });
 
