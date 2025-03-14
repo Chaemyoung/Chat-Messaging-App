@@ -366,17 +366,25 @@ app.get('/api/emojis', sessionValidation, async (req, res) => {
 });
 
 // Endpoint to add a reaction to a message
-app.post('/api/reactions', sessionValidation, async (req, res) => {
-    const { message_id, emoji_id } = req.body;
-    const user_id = req.session.user_id;
-    
-    if (!message_id || !emoji_id) {
-        return res.status(400).json({ error: 'Missing message_id or emoji_id' });
-    }
-    
+app.post('/api/reactions', async (req, res) => {
     try {
-        await db_messages.addReaction({ message_id, emoji_id, user_id });
-        res.json({ success: true });
+        const { message_id, emoji_id, user_id } = req.body;
+        
+        if (!message_id || !emoji_id || !user_id) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+        
+        const result = await db_messages.addReaction({ 
+            message_id: parseInt(message_id), 
+            emoji_id: parseInt(emoji_id), 
+            user_id: parseInt(user_id) 
+        });
+        
+        if (result) {
+            res.json({ status: 'success', data: result });
+        } else {
+            res.json({ status: 'exists', message: 'Reaction already exists' });
+        }
     } catch (error) {
         console.error('Error adding reaction:', error);
         res.status(500).json({ error: 'Failed to add reaction' });
