@@ -202,13 +202,19 @@
                     messageReactions[messageId] = [];
                 }
 
-                const existingReaction = messageReactions[messageId].find(r =>
-                    r.user_id === reaction.user_id && r.emoji_id === reaction.emoji_id);
-
-                if (!existingReaction) {
-                    messageReactions[messageId].push(reaction);
-                    updateReactionsDisplay(messageId);
+                const existingReaction = messageReactions[messageId].find(r => r.emoji_id === reaction.emoji_id);
+                if (existingReaction) {
+                    existingReaction.count++;
+                } else {
+                    messageReactions[messageId].push({
+                        emoji_id: reaction.emoji_id,
+                        emoji_image: reaction.emoji_image,
+                        emoji_name: reaction.emoji_name,
+                        count: 1
+                    });
                 }
+
+                updateReactionsDisplay(messageId);
             }
 
             // Update the reactions display for a message
@@ -225,21 +231,8 @@
 
                 reactionsContainer.innerHTML = '';
 
-                const groupedReactions = {};
-                if (messageReactions[messageId]) {
-                    messageReactions[messageId].forEach(reaction => {
-                        if (!groupedReactions[reaction.emoji_id]) {
-                            groupedReactions[reaction.emoji_id] = {
-                                count: 0,
-                                emoji_image: reaction.emoji_image,
-                                emoji_name: reaction.emoji_name
-                            };
-                        }
-                        groupedReactions[reaction.emoji_id].count++;
-                    });
-                }
-
-                Object.values(groupedReactions).forEach(reaction => {
+                const reactions = messageReactions[messageId] || [];
+                reactions.forEach(reaction => {
                     const reactionElement = document.createElement('div');
                     reactionElement.className = 'reaction';
                     reactionElement.innerHTML = `
@@ -609,16 +602,8 @@
                     results.forEach((data, index) => {
                         if (data.reactions) {
                             const messageId = messageIds[index];
-                            if (!messageReactions[messageId]) messageReactions[messageId] = [];
-                            data.reactions.forEach(reaction => {
-                                messageReactions[messageId].push({
-                                    user_id: reaction.user_id,
-                                    emoji_id: reaction.emoji_id,
-                                    emoji_image: reaction.emoji_image || '/emojis/' + reaction.emoji_name + '.png',
-                                    emoji_name: reaction.emoji_name
-                                });
-                                updateReactionsDisplay(messageId);
-                            });
+                            messageReactions[messageId] = data.reactions;
+                            updateReactionsDisplay(messageId);
                         }
                     });
                 } catch (error) {
