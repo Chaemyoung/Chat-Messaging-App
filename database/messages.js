@@ -13,7 +13,7 @@ async function getMessagesForRoom(roomId) {
     try {
         const results = await database.query(sql, params);
         console.log(`Successfully fetched messages for room ${roomId}`);
-        return results[0]; 
+        return results[0];
     } catch (err) {
         console.error(`Error fetching messages for room ${roomId}:`, err);
         throw err;
@@ -60,7 +60,6 @@ async function sendMessage({ userId, roomId, text }) {
 }
 
 async function clearUnread({ roomId, userId }) {
-    // Retrieve the latest message id in the room
     const getLatestMsgSQL = `
         SELECT MAX(m.message_id) as latest_msg_id
         FROM message m
@@ -71,7 +70,6 @@ async function clearUnread({ roomId, userId }) {
     const result = await database.query(getLatestMsgSQL, params);
     const latestMsgId = result[0][0].latest_msg_id || 0;
     
-    // Update the room_user table to mark all messages as read
     const updateSQL = `
         UPDATE room_user
         SET last_read_msg = :latestMsgId
@@ -81,4 +79,55 @@ async function clearUnread({ roomId, userId }) {
     await database.query(updateSQL, updateParams);
 }
 
-module.exports = { getMessagesForRoom, getLastReadMsg, sendMessage, clearUnread };
+// Add a reaction to a message
+async function addReaction({ message_id, emoji_id, user_id }) {
+    try {
+        const [insertResult] = await database.query(
+            `INSERT IGNORE INTO message_emoji_user (message_id, emoji_id, user_id) 
+             VALUES (?, ?, ?)`,
+            [message_id, emoji_id, user_id]
+        );
+        if (insertResult.affectedRows === 1) {
+            const [rows] = await database.query(
+                `SELECT * FROM message_emoji_user 
+                 WHERE message_id = ? AND emoji_id = ? AND user_id = ?`,
+                [message_id, emoji_id, user_id]
+            );
+            return rows[0];
+        } else {
+            return undefined;
+        }
+    } catch (error) {
+        console.error('Database error in addReaction:', error);
+        throw error;
+    }
+}
+
+// Get all reactions for a message
+async function getReactionsForMessage(message_id) {
+    try {
+        const sql = `
+            SELECT meu.message_id, meu.emoji_id, e.name as emoji_name, e.image as emoji_image, COUNT(*) as count
+            FROM message_emoji_user meu
+            JOIN emoji e ON meu.emoji_id = e.emoji_id
+            WHERE meu.message_id = ?
+            GROUP BY meu.emoji_id, e.name, e.image;
+        `;
+        const params = [message_id];
+        const [result] = await database.query(sql, params);
+        return result;
+    } catch (error) {
+        console.error('Database error in getReactionsForMessage:', error);
+        throw error;
+    }
+}
+
+
+module.exports = {
+    getMessagesForRoom,
+    getLastReadMsg,
+    sendMessage,
+    clearUnread,
+    addReaction,
+    getReactionsForMessage
+};
