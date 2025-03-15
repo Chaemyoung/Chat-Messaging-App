@@ -267,26 +267,50 @@
             // Group selection logic
             groupItems.forEach(item => {
                 item.addEventListener('click', async () => {
-                    activeRoomId = item.getAttribute('data-room-id');
+                    const newRoomId = item.getAttribute('data-room-id');
+                    // Mark the room as being viewed
+                    isViewingRoom = true;
+                    lastViewedRoom = newRoomId;
+
+                    // Update active room
+                    activeRoomId = newRoomId;
                     const groupName = item.querySelector('.group-name').textContent.trim();
                     document.getElementById('group-name').textContent = groupName;
 
                     try {
-                        const response = await fetch(`/api/messages/${activeRoomId}`);
-                        if (!response.ok) throw new Error('Failed to fetch messages');
-                        const data = await response.json();
+                        const [messagesResponse, lastReadMsgResponse] = await Promise.all([
+                            fetch(`/api/messages/${activeRoomId}`),
+                            fetchLastReadMsg(activeRoomId)
+                        ]);
+
+                        if (!messagesResponse.ok) throw new Error('Failed to fetch messages');
+                        const data = await messagesResponse.json();
                         const messages = data.messages;
+                        const lastReadMsg = lastReadMsgResponse || 0;
 
                         messageReactions = {};
-
                         messageList.innerHTML = '';
+
+                        let unreadIndicatorAdded = false;
 
                         messages.forEach(msg => {
                             const isCurrentUser = msg.user_id === currentUserId;
                             const messageClass = isCurrentUser ? 'message sent' : 'message received';
                             const reactionButtonHtml = `<button class="reaction-button" data-message-id="${msg.message_id}">+</button>`;
+
+                            const isUnread = msg.message_id > lastReadMsg;
+                            const shouldShowIndicator = isUnread && !isCurrentUser && !unreadIndicatorAdded;
+
+                            const unreadClass = shouldShowIndicator ? 'unread-indicator' : '';
+                            const newLabel = shouldShowIndicator ? '<span class="new-message-label">NEW</span>' : '';
+
+                            if (shouldShowIndicator) {
+                                unreadIndicatorAdded = true;
+                            }
+
                             const messageContentHtml = `
                                 <div class="message-content">
+                                    ${newLabel}
                                     <div class="message-text">${msg.text}</div>
                                     <div class="message-time">${formatDateToYYYYMMDD(msg.sent_datetime)}</div>
                                     <div class="message-reactions"></div>
@@ -297,7 +321,7 @@
                             if (isCurrentUser) {
                                 // For sent messages
                                 messageHtml = `
-                                    <div class="${messageClass}" data-message-id="${msg.message_id}">
+                                    <div class="${messageClass} ${unreadClass}" data-message-id="${msg.message_id}">
                                         ${reactionButtonHtml}
                                         ${messageContentHtml}
                                     </div>
@@ -305,11 +329,10 @@
                             } else {
                                 // For received messages
                                 messageHtml = `
-                                    <div class="${messageClass}" data-message-id="${msg.message_id}">
+                                    <div class="${messageClass} ${unreadClass}" data-message-id="${msg.message_id}">
                                         ${!isCurrentUser ? `<img src="${msg.profile_img}" alt="${msg.username}" class="profile-pic">` : ''}
                                         ${messageContentHtml}
                                         ${reactionButtonHtml}
-                                        <!-- ${messageContentHtml} -->
                                     </div>
                                 `;
                             }
@@ -341,7 +364,6 @@
                 });
             });
 
-            // Send message functionality
             if (sendButton) {
                 sendButton.addEventListener('click', async () => {
                     const text = messageInput.value.trim();
@@ -381,17 +403,19 @@
 
                             messageList.scrollTop = messageList.scrollHeight;
                             messageInput.value = '';
+
+                            // Since the user sent this message, they've obviously read it,
+                            // so we update the last_read_msg immediately
+                            await fetch('/api/clearUnread', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ roomId: activeRoomId })
+                            });
                         } else {
                             console.error('Error sending message:', data.error);
                         }
                     } catch (error) {
                         console.error('Error sending message:', error);
-                    }
-                });
-
-                messageInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        sendButton.click();
                     }
                 });
             }
@@ -634,6 +658,77 @@
             // Initialize the application
             initialize();
         });
+
+        let activeRoomId = null;
+        let lastViewedRoom = null;
+        let isViewingRoom = false;
+
+        // Function to fetch last read message ID
+        async function fetchLastReadMsg(roomId) {
+            try {
+                const response = await fetch(`/api/messages/${roomId}/lastread`);
+                if (!response.ok) throw new Error('Failed to fetch last read message');
+                const data = await response.json();
+                return data.lastReadMsg;
+            } catch (error) {
+                console.error('Error fetching last read message:', error);
+                return null;
+            }
+        }
+
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'hidden') {
+                isViewingRoom = false;
+            } else if (document.visibilityState === 'visible' && lastViewedRoom) {
+                isViewingRoom = true;
+                if (activeRoomId) {
+                    await fetch('/api/clearUnread', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ roomId: activeRoomId })
+                    });
+                }
+            }
+        });
+
+        // Create a function to periodically check for new messages in the room
+        let messagesPollingInterval;
+
+        function startMessagesPolling() {
+            if (messagesPollingInterval) {
+                clearInterval(messagesPollingInterval);
+            }
+
+            messagesPollingInterval = setInterval(async () => {
+                if (!activeRoomId || !isViewingRoom) return;
+
+                try {
+                    const response = await fetch(`/api/messages/${activeRoomId}`);
+                    if (!response.ok) throw new Error('Failed to fetch messages');
+                    const data = await response.json();
+                    const messages = data.messages;
+
+                    // Clear unread status since user is viewing this room
+                    await fetch('/api/clearUnread', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ roomId: activeRoomId })
+                    });
+
+                } catch (error) {
+                    console.error('Error polling messages:', error);
+                }
+            }, 10000);
+        }
+
+        startMessagesPolling();
+
+        window.addEventListener('beforeunload', () => {
+            if (messagesPollingInterval) {
+                clearInterval(messagesPollingInterval);
+            }
+        });
+
     </script>
 </body>
 
