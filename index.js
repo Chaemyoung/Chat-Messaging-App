@@ -269,6 +269,19 @@ app.get('/api/messages/:room_id', sessionValidation, async (req, res) => {
     }
 });
 
+app.get('/api/messages/:room_id/lastread', sessionValidation, async (req, res) => {
+    const roomId = req.params.room_id;
+    const userId = req.session.user_id;
+
+    try {
+        const lastReadMsg = await db_messages.getLastReadMsg(userId, roomId);
+        res.json({ lastReadMsg });
+    } catch (error) {
+        console.error("Error fetching last read message:", error);
+        res.status(500).json({ error: "Failed to fetch last read message" });
+    }
+});
+
 
 app.post('/api/messages', sessionValidation, async (req, res) => {
     const { roomId, text } = req.body;
