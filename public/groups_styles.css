@@ -500,3 +500,32 @@ body {
 .emoji-picker img:hover {
     transform: scale(1.2);
 }
+
+.unread-indicator {
+    position: relative;
+    padding-top: 10px;
+    margin-top: 10px;
+  }
+  
+  .unread-indicator::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #ff3b30;
+    z-index: 2;
+  }
+  
+  .new-message-label {
+    position: absolute;
+    top: -10px;
+    right: 10px;
+    background-color: #ff3b30;
+    color: white;
+    font-size: 0.75rem;
+    padding: 1px 6px;
+    border-radius: 8px;
+    z-index: 3;
+  }
