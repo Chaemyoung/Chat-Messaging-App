@@ -159,20 +159,6 @@ app.post('/submitUser', async (req, res) => {
     }
 });
 
-app.get('/members', (req, res) => {
-    if (!req.session.username) {
-        return res.redirect('/login');
-    }
-
-    const images = ['/cat1.png', '/cat2.png', '/cat3.png'];
-    const randomImage = images[Math.floor(Math.random() * images.length)];
-
-    res.render('members', { 
-        username: req.session.username, 
-        imagePath: randomImage 
-    });
-});
-
 
 app.get('/login', (req, res) => {
     const errorMessage = req.query.error || null;
@@ -418,21 +404,21 @@ app.get('/api/messages/:message_id/reactions', sessionValidation, async (req, re
 });
 
 
-app.use('/members', sessionValidation);
+// app.use('/members', sessionValidation);
 
-app.get('/members', (req, res) => {
-    if (!req.session.username) {
-        return res.redirect('/login');
-    }
+// app.get('/members', (req, res) => {
+//     if (!req.session.username) {
+//         return res.redirect('/login');
+//     }
 
-    const images = ['/cat1.png', '/cat2.png', '/cat3.png'];
-    const randomImage = images[Math.floor(Math.random() * images.length)];
+//     const images = ['/cat1.png', '/cat2.png', '/cat3.png'];
+//     const randomImage = images[Math.floor(Math.random() * images.length)];
 
-    res.render('members', { 
-        username: req.session.username, 
-        imagePath: randomImage 
-    });
-});
+//     res.render('members', { 
+//         username: req.session.username, 
+//         imagePath: randomImage 
+//     });
+// });
 
 app.get('/logout', (req, res) => {
     req.session.destroy((err) => { 
