@@ -2,10 +2,10 @@ const database = include('databaseConnection');
 
 async function createUser(postData) {
 	let createUserSQL = `
-	INSERT INTO user
-	(email, username, password, profile_img)
-	VALUES
-	(:email, :user, :passwordHash, null);
+        INSERT INTO user
+        (email, username, password, profile_img)
+        VALUES
+        (:email, :user, :passwordHash, 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y');
 `;
 
 	let params = {
