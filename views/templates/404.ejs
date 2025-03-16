@@ -1,5 +1,109 @@
-<%-  %> 
-    <h1>404 - Page Not Found</h1>
-    <p>Oops! The page you are looking for does not exist.</p>
-    <a href="/"><button>Back to Home</button></a>
-<%-  %> 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Page Not Found - ChatApp</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .wave-decoration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(90deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D, #F56040, #F77737, #FCAF45, #FFDC80);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            max-width: 450px;
+            width: 90%;
+            margin: 40px auto;
+        }
+
+        .logo {
+            font-size: 36px;
+            margin-bottom: 30px;
+            text-align: center;
+            background: linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        .message-container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 1px solid #dbdbdb;
+        }
+
+        h1 {
+            color: #262626;
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        p {
+            color: #262626;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        a {
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="wave-decoration"></div>
+    <div class="container">
+        <div class="logo">ChatApp</div>
+        <div class="message-container">
+            <h1>404 - Page Not Found</h1>
+            <p>Oops! The page you are looking for does not exist.</p>
+            <a href="/"><button>Back to Home</button></a>
+        </div>
+    </div>
+</body>
+</html>
